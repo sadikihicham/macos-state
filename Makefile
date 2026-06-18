@@ -4,7 +4,7 @@ BUILD = .build
 APPDIR = $(BUILD)/$(APP).app
 AGENT_PLIST = $(HOME)/Library/LaunchAgents/com.hicham.macosstate.plist
 
-.PHONY: build release run test check-net verify accuracy hooks bundle bundle-universal dmg install-agent uninstall-agent clean
+.PHONY: build release run test check-net verify accuracy hooks bundle bundle-universal dmg notarize install-agent uninstall-agent clean
 
 ARCHS   = --arch arm64 --arch x86_64
 DMGFILE = $(BUILD)/$(APP).dmg
@@ -77,6 +77,43 @@ dmg: bundle-universal
 	hdiutil create -volname "$(APP)" -srcfolder "$(BUILD)/dmgroot" -ov -format UDZO "$(DMGFILE)"
 	rm -rf "$(BUILD)/dmgroot"
 	@echo "==> $(DMGFILE)"
+
+## Signe (Developer ID) + notarise + staple le DMG → s'installe SANS avertissement
+## Gatekeeper sur n'importe quel Mac. Requiert un compte Apple Developer (99 $/an).
+##
+## Prérequis (une fois) :
+##   1. Adhérer à l'Apple Developer Program → certificat "Developer ID Application".
+##   2. Créer un profil notarytool :
+##        xcrun notarytool store-credentials macnotary \
+##          --apple-id "TON_APPLE_ID" --team-id "TEAMID" --password "MDP_APP_SPECIFIQUE"
+##
+## Variables d'environnement requises (jamais stockées dans le repo) :
+##   DEV_ID         = "Developer ID Application: Ton Nom (TEAMID)"
+##   NOTARY_PROFILE = nom du profil notarytool (ex. macnotary)
+##
+## Usage :  DEV_ID="Developer ID Application: ... (TEAMID)" NOTARY_PROFILE=macnotary make notarize
+notarize:
+	@test -n "$(DEV_ID)"         || { echo "✗ DEV_ID manquant — voir le commentaire de la cible notarize."; exit 1; }
+	@test -n "$(NOTARY_PROFILE)" || { echo "✗ NOTARY_PROFILE manquant — voir le commentaire de la cible notarize."; exit 1; }
+	swift build -c release $(ARCHS)
+	rm -rf "$(APPDIR)"
+	mkdir -p "$(APPDIR)/Contents/MacOS"
+	cp "$$(swift build -c release $(ARCHS) --show-bin-path)/$(EXEC)" "$(APPDIR)/Contents/MacOS/$(EXEC)"
+	cp bundle/Info.plist "$(APPDIR)/Contents/Info.plist"
+	# Signature Developer ID + hardened runtime + timestamp sécurisé (exigés pour notariser).
+	codesign --force --options runtime --timestamp --sign "$(DEV_ID)" "$(APPDIR)"
+	rm -f "$(DMGFILE)"
+	rm -rf "$(BUILD)/dmgroot"
+	mkdir -p "$(BUILD)/dmgroot"
+	cp -R "$(APPDIR)" "$(BUILD)/dmgroot/"
+	ln -s /Applications "$(BUILD)/dmgroot/Applications"
+	hdiutil create -volname "$(APP)" -srcfolder "$(BUILD)/dmgroot" -ov -format UDZO "$(DMGFILE)"
+	rm -rf "$(BUILD)/dmgroot"
+	codesign --force --timestamp --sign "$(DEV_ID)" "$(DMGFILE)"
+	# Soumission à Apple (bloquant) puis agrafage du ticket sur le DMG.
+	xcrun notarytool submit "$(DMGFILE)" --keychain-profile "$(NOTARY_PROFILE)" --wait
+	xcrun stapler staple "$(DMGFILE)"
+	@echo "==> $(DMGFILE) signé Developer ID + notarisé + staplé (distribuable sans avertissement)"
 
 ## Installe un LaunchAgent qui démarre l'app au login (usage perso).
 install-agent: bundle

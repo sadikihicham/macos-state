@@ -26,6 +26,8 @@ make hooks           # activer les git hooks versionnés (.githooks) — une foi
 make release         # swift build -c release
 make bundle          # assemble + ad-hoc codesign .build/MacOSState.app (arch hôte)
 make dmg             # .dmg distribuable : .app UNIVERSEL (arm64+x86_64), ad-hoc, lien /Applications
+make notarize        # .dmg signé Developer ID + notarisé + staplé (sans avertissement Gatekeeper)
+                     #   → requiert un compte Apple Developer ; lit DEV_ID + NOTARY_PROFILE depuis l'env
 make install-agent   # install LaunchAgent (~/Library/LaunchAgents/com.hicham.macosstate.plist)
 make clean
 ```
