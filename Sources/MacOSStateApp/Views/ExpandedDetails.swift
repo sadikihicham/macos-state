@@ -34,27 +34,27 @@ struct ExpandedDetails: View {
     // MARK: Ventilation mémoire
     private var memoryBreakdown: some View {
         VStack(alignment: .leading, spacing: 3) {
-            sectionTitle("Mémoire")
-            kv("Active", Metrics.formatBytes(Double(s.memActive)))
-            kv("Câblée", Metrics.formatBytes(Double(s.memWired)))
-            kv("Compressée", Metrics.formatBytes(Double(s.memCompressed)))
-            kv("Libre", Metrics.formatBytes(Double(s.memFree)))
-            kv("Total", Metrics.formatBytes(Double(s.memoryTotalBytes)))
+            sectionTitle(tr("Mémoire"))
+            kv(tr("Active"), Metrics.formatBytes(Double(s.memActive)))
+            kv(tr("Câblée"), Metrics.formatBytes(Double(s.memWired)))
+            kv(tr("Compressée"), Metrics.formatBytes(Double(s.memCompressed)))
+            kv(tr("Libre"), Metrics.formatBytes(Double(s.memFree)))
+            kv(tr("Total"), Metrics.formatBytes(Double(s.memoryTotalBytes)))
         }
     }
 
     private var diskDetail: some View {
         VStack(alignment: .leading, spacing: 3) {
-            sectionTitle("Disque /")
-            kv("Utilisé", Metrics.formatBytes(Double(s.diskUsedBytes)))
-            kv("Libre", Metrics.formatBytes(Double(s.diskFreeBytes)))
-            kv("Total", Metrics.formatBytes(Double(s.diskTotalBytes)))
+            sectionTitle(tr("Disque /"))
+            kv(tr("Utilisé"), Metrics.formatBytes(Double(s.diskUsedBytes)))
+            kv(tr("Libre"), Metrics.formatBytes(Double(s.diskFreeBytes)))
+            kv(tr("Total"), Metrics.formatBytes(Double(s.diskTotalBytes)))
         }
     }
 
     private var networkDetail: some View {
         VStack(alignment: .leading, spacing: 3) {
-            sectionTitle("Réseau par interface")
+            sectionTitle(tr("Réseau par interface"))
             ForEach(s.interfaces) { i in
                 HStack(spacing: 6) {
                     Text(i.id).font(.system(size: 10, weight: .medium, design: .monospaced))
@@ -73,11 +73,11 @@ struct ExpandedDetails: View {
 
     private func batteryDetail(_ b: BatteryInfo) -> some View {
         VStack(alignment: .leading, spacing: 3) {
-            sectionTitle("Batterie")
-            if let h = b.healthPercent { kv("Santé", "\(h)%") }
-            if let c = b.cycleCount { kv("Cycles", "\(c)") }
-            if let cond = b.condition { kv("État", cond) }
-            kv("Alimentation", b.isPluggedIn ? "Secteur" : "Batterie")
+            sectionTitle(tr("Batterie"))
+            if let h = b.healthPercent { kv(tr("Santé"), "\(h)%") }
+            if let c = b.cycleCount { kv(tr("Cycles"), "\(c)") }
+            if let cond = b.condition { kv(tr("État"), cond) }
+            kv(tr("Alimentation"), tr(b.isPluggedIn ? "Secteur" : "Batterie"))
         }
     }
 

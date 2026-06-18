@@ -29,10 +29,16 @@ enum L {
         }
     }
 
+    /// Gabarit localisé avec arguments (placeholders %@).
+    static func fmt(_ frTemplate: String, _ args: CVarArg...) -> String {
+        String(format: t(frTemplate), arguments: args)
+    }
+
     static let en: [String: String] = [
         "Réduire": "Collapse", "Détails": "Details", "Réduire en pastille": "Collapse to dot",
         "Afficher le HUD": "Show HUD", "Masquer le HUD": "Hide HUD",
         "Local": "Local", "Privé": "Private", "100% local (vérifié en CI)": "100% local (verified in CI)",
+        "0 socket réseau ouvert": "0 network sockets open",
         "CPU": "CPU", "RAM": "RAM", "Disq": "Disk", "Rés": "Net", "Bat": "Bat",
         "Temp": "Temp", "vent. N/A": "fan N/A", "cœurs": "cores", "CPU ·": "CPU ·",
         "Mémoire": "Memory", "Active": "Active", "Câblée": "Wired", "Compressée": "Compressed",
@@ -45,12 +51,19 @@ enum L {
         "Lancer au login": "Launch at login", "Quitter macOS State": "Quit macOS State",
         "Tuer": "Kill", "Annuler": "Cancel", "OK": "OK", "Action impossible": "Action not available",
         "Refusé": "Denied", "Process changé": "Process changed", "Échec": "Failed", "Langue": "Language",
+        "Le process recevra SIGTERM, puis SIGKILL s'il ne répond pas.":
+            "The process will receive SIGTERM, then SIGKILL if it doesn’t respond.",
+        "Tuer « %@ » (PID %@) ?": "Kill “%@” (PID %@)?",
+        "Le PID %@ ne correspond plus à « %@ » (réutilisé). Aucun kill effectué.":
+            "PID %@ no longer matches “%@” (reused). No kill performed.",
+        "Impossible de tuer « %@ » : %@": "Couldn’t kill “%@”: %@",
     ]
 
     static let ar: [String: String] = [
         "Réduire": "تصغير", "Détails": "تفاصيل", "Réduire en pastille": "تصغير إلى أيقونة",
         "Afficher le HUD": "إظهار الواجهة", "Masquer le HUD": "إخفاء الواجهة",
         "Local": "محلي", "Privé": "خاص", "100% local (vérifié en CI)": "محلي 100٪ (يُتحقق منه في CI)",
+        "0 socket réseau ouvert": "لا يوجد اتصال شبكي مفتوح",
         "CPU": "المعالج", "RAM": "ذاكرة", "Disq": "قرص", "Rés": "شبكة", "Bat": "بطارية",
         "Temp": "حرارة", "vent. N/A": "المروحة: غير متاح", "cœurs": "أنوية", "CPU ·": "المعالج ·",
         "Mémoire": "الذاكرة", "Active": "نشطة", "Câblée": "مُقفلة", "Compressée": "مضغوطة",
@@ -63,5 +76,11 @@ enum L {
         "Lancer au login": "التشغيل عند تسجيل الدخول", "Quitter macOS State": "إنهاء macOS State",
         "Tuer": "إنهاء", "Annuler": "إلغاء", "OK": "موافق", "Action impossible": "تعذّر تنفيذ الإجراء",
         "Refusé": "مرفوض", "Process changé": "تغيّرت العملية", "Échec": "فشل", "Langue": "اللغة",
+        "Le process recevra SIGTERM, puis SIGKILL s'il ne répond pas.":
+            "ستتلقى العملية إشارة SIGTERM، ثم SIGKILL إن لم تستجب.",
+        "Tuer « %@ » (PID %@) ?": "إنهاء «%@» (المعرّف %@)؟",
+        "Le PID %@ ne correspond plus à « %@ » (réutilisé). Aucun kill effectué.":
+            "المعرّف %@ لم يعد يطابق «%@» (أُعيد استخدامه). لم يُنفَّذ أي إنهاء.",
+        "Impossible de tuer « %@ » : %@": "تعذّر إنهاء «%@»: %@",
     ]
 }

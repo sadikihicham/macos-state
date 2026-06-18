@@ -6,10 +6,12 @@ struct ProcessListView: View {
     let processes: [ProcSample]
     let decide: (ProcSample) -> KillDecision
     let onKill: (ProcSample) -> Void
+    @AppStorage("app.lang") private var lang = "fr"
+    private func tr(_ x: String) -> String { L.t(x, lang) }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 3) {
-            Text("PROCESSUS (TOP CPU)")
+            Text(tr("PROCESSUS (TOP CPU)"))
                 .font(.system(size: 9, weight: .semibold))
                 .foregroundStyle(.tertiary)
             ForEach(processes) { p in row(p) }
@@ -66,7 +68,7 @@ struct ProcessListView: View {
 
     private func helpText(_ d: KillDecision) -> String {
         switch d {
-        case .allowed: return "Tuer ce process"
+        case .allowed: return tr("Tuer ce process")
         case .allowedWithWarning(let w): return w
         case .denied(let r): return r
         }

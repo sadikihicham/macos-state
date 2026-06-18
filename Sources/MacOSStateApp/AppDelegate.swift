@@ -40,21 +40,24 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     /// Menu partagé (barre de menu + clic droit HUD). Deux instances distinctes.
+    /// Raccourci de localisation pour les chaînes AppKit (langue courante).
+    private func t(_ s: String) -> String { L.t(s, L.lang) }
+
     private func buildMenu() -> NSMenu {
         let menu = NSMenu()
 
-        let toggleHUD = NSMenuItem(title: "Masquer le HUD",
+        let toggleHUD = NSMenuItem(title: t("Masquer le HUD"),
                                    action: #selector(toggleHUDVisibility(_:)), keyEquivalent: "")
         toggleHUD.target = self
         menu.addItem(toggleHUD)
 
-        let onTop = NSMenuItem(title: "Toujours au-dessus",
+        let onTop = NSMenuItem(title: t("Toujours au-dessus"),
                                action: #selector(toggleFloatOnTop(_:)), keyEquivalent: "")
         onTop.target = self
         menu.addItem(onTop)
 
         // Sous-menu Intervalle.
-        let intervalItem = NSMenuItem(title: "Intervalle", action: nil, keyEquivalent: "")
+        let intervalItem = NSMenuItem(title: t("Intervalle"), action: nil, keyEquivalent: "")
         let intervalMenu = NSMenu()
         for v in Settings.intervalChoices {
             let it = NSMenuItem(title: "\(Int(v)) s", action: #selector(setInterval(_:)), keyEquivalent: "")
@@ -66,12 +69,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         menu.addItem(intervalItem)
 
         // Sous-menu Métriques.
-        let metricsItem = NSMenuItem(title: "Métriques", action: nil, keyEquivalent: "")
+        let metricsItem = NSMenuItem(title: t("Métriques"), action: nil, keyEquivalent: "")
         let metricsMenu = NSMenu()
         let labels = ["cpu": "CPU", "ram": "Mémoire", "disk": "Disque", "net": "Réseau",
                       "battery": "Batterie", "thermal": "Thermique (temp. + ventilo)"]
         for key in Settings.metricKeys {
-            let it = NSMenuItem(title: labels[key] ?? key, action: #selector(toggleMetric(_:)), keyEquivalent: "")
+            let it = NSMenuItem(title: t(labels[key] ?? key), action: #selector(toggleMetric(_:)), keyEquivalent: "")
             it.target = self
             it.representedObject = key
             metricsMenu.addItem(it)
@@ -79,15 +82,39 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         metricsItem.submenu = metricsMenu
         menu.addItem(metricsItem)
 
-        let login = NSMenuItem(title: "Lancer au login",
+        // Sous-menu Langue.
+        let langItem = NSMenuItem(title: t("Langue"), action: nil, keyEquivalent: "")
+        let langMenu = NSMenu()
+        for code in L.supported {
+            let it = NSMenuItem(title: L.name(code), action: #selector(setLanguage(_:)), keyEquivalent: "")
+            it.target = self
+            it.representedObject = code
+            langMenu.addItem(it)
+        }
+        langItem.submenu = langMenu
+        menu.addItem(langItem)
+
+        let login = NSMenuItem(title: t("Lancer au login"),
                                action: #selector(toggleLaunchAtLogin(_:)), keyEquivalent: "")
         login.target = self
         menu.addItem(login)
 
         menu.addItem(.separator())
-        menu.addItem(NSMenuItem(title: "Quitter macOS State",
+        menu.addItem(NSMenuItem(title: t("Quitter macOS State"),
                                 action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q"))
         return menu
+    }
+
+    @objc private func setLanguage(_ sender: NSMenuItem) {
+        guard let code = sender.representedObject as? String else { return }
+        L.setLang(code)
+        rebuildMenus()      // l'UI SwiftUI se met à jour via @AppStorage("app.lang")
+    }
+
+    /// Reconstruit les menus (barre de menu + clic droit) avec la nouvelle langue.
+    private func rebuildMenus() {
+        statusItem?.menu = buildMenu()
+        panel?.contentView?.menu = buildMenu()
     }
 
     @objc private func toggleHUDVisibility(_ sender: NSMenuItem) {
@@ -113,7 +140,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     func validateMenuItem(_ menuItem: NSMenuItem) -> Bool {
         switch menuItem.action {
         case #selector(toggleHUDVisibility(_:)):
-            menuItem.title = (panel?.isVisible == true) ? "Masquer le HUD" : "Afficher le HUD"
+            menuItem.title = (panel?.isVisible == true) ? t("Masquer le HUD") : t("Afficher le HUD")
+        case #selector(setLanguage(_:)):
+            menuItem.state = (menuItem.representedObject as? String == L.lang) ? .on : .off
         case #selector(toggleFloatOnTop(_:)):
             menuItem.state = settings.floatOnTop ? .on : .off
         case #selector(setInterval(_:)):
@@ -137,18 +166,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         guard let engine, let panel else { return }
         let decision = engine.processController.decide(p)
         if case .denied(let reason) = decision {
-            present(title: "Action impossible", text: reason, style: .warning)
+            present(title: t("Action impossible"), text: reason, style: .warning)
             return
         }
 
         let alert = NSAlert()
         alert.alertStyle = .warning
-        alert.messageText = "Tuer « \(p.name) » (PID \(p.pid)) ?"
-        var info = "Le process recevra SIGTERM, puis SIGKILL s'il ne répond pas."
+        alert.messageText = L.fmt("Tuer « %@ » (PID %@) ?", p.name, "\(p.pid)")
+        var info = t("Le process recevra SIGTERM, puis SIGKILL s'il ne répond pas.")
         if case .allowedWithWarning(let w) = decision { info = w + "\n\n" + info }
         alert.informativeText = info
-        alert.addButton(withTitle: "Tuer")     // .alertFirstButtonReturn
-        alert.addButton(withTitle: "Annuler")
+        alert.addButton(withTitle: t("Tuer"))     // .alertFirstButtonReturn
+        alert.addButton(withTitle: t("Annuler"))
 
         NSApp.activate(ignoringOtherApps: true)
         alert.beginSheetModal(for: panel) { [weak self] resp in
@@ -163,13 +192,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         case .terminated, .signalSent:
             break // succès : le process disparaît de la liste au prochain tick
         case .denied(let r):
-            present(title: "Refusé", text: r, style: .warning)
+            present(title: t("Refusé"), text: r, style: .warning)
         case .staleIdentity:
-            present(title: "Process changé",
-                    text: "Le PID \(p.pid) ne correspond plus à « \(p.name) » (réutilisé). Aucun kill effectué.",
+            present(title: t("Process changé"),
+                    text: L.fmt("Le PID %@ ne correspond plus à « %@ » (réutilisé). Aucun kill effectué.", "\(p.pid)", p.name),
                     style: .informational)
         case .failed(let e):
-            present(title: "Échec", text: "Impossible de tuer « \(p.name) » : \(e)", style: .critical)
+            present(title: t("Échec"), text: L.fmt("Impossible de tuer « %@ » : %@", p.name, e), style: .critical)
         }
     }
 
@@ -178,7 +207,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         a.alertStyle = style
         a.messageText = title
         a.informativeText = text
-        a.addButton(withTitle: "OK")
+        a.addButton(withTitle: t("OK"))
         if let panel { NSApp.activate(ignoringOtherApps: true); a.beginSheetModal(for: panel, completionHandler: nil) }
         else { a.runModal() }
     }

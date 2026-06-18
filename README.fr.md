@@ -23,6 +23,7 @@ Natif **Swift + SwiftUI/AppKit**. 100 % local, **aucun accès réseau** (garanti
   au-dessus, Intervalle, Métriques, Lancer au login, Quitter.
 - **Réglages** : intervalle de rafraîchissement (1/2/5 s), métriques affichées, lancement
   au login.
+- **Interface trilingue** (FR / EN / AR) : menu Langue intégré, bascule en direct, RTL pour l'arabe.
 
 ## Sécurité (modèle)
 
