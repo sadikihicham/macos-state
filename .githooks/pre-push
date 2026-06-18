@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+# Porte complète au push : invariant zéro-réseau sur le binaire release.
+# (make check-net rebuild le binaire release au besoin.)
+set -euo pipefail
+
+ROOT="$(git rev-parse --show-toplevel)"
+cd "$ROOT"
+
+echo "==> pre-push : make check-net"
+make check-net

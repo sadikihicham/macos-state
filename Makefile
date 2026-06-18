@@ -4,7 +4,7 @@ BUILD = .build
 APPDIR = $(BUILD)/$(APP).app
 AGENT_PLIST = $(HOME)/Library/LaunchAgents/com.hicham.macosstate.plist
 
-.PHONY: build release run test check-net verify bundle install-agent uninstall-agent clean
+.PHONY: build release run test check-net verify hooks bundle install-agent uninstall-agent clean
 
 build:
 	swift build
@@ -27,6 +27,13 @@ check-net: release
 ## Porte complète : build + tests + invariant zéro-réseau.
 verify: test check-net
 	@echo "==> verify OK (tests verts + zéro réseau)"
+
+## Active les git hooks versionnés (.githooks) : test au commit, check-net au push.
+## À lancer une fois après un clone.
+hooks:
+	@chmod +x .githooks/*
+	@git config core.hooksPath .githooks
+	@echo "==> hooks actifs (core.hooksPath=.githooks) : pre-commit=make test, pre-push=make check-net"
 
 ## Assemble un .app signé ad-hoc à partir du binaire release.
 bundle: release

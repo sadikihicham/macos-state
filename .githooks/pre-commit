@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+# Porte rapide au commit : tests unitaires de la lib pure SystemMetrics.
+# L'invariant zéro-réseau (build release) est vérifié au push (voir pre-push).
+set -euo pipefail
+
+ROOT="$(git rev-parse --show-toplevel)"
+cd "$ROOT"
+
+echo "==> pre-commit : make test"
+make test
