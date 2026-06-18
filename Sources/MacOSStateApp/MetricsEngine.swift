@@ -129,12 +129,28 @@ final class MetricsEngine: ObservableObject {
         s.fanCount = th.fanCount
         snapshot = s
 
-        if processListingEnabled {
-            processes = Array(
-                procLister.list()
-                    .sorted { $0.cpuPercent > $1.cpuPercent }
-                    .prefix(maxProcesses)
+        if processListingEnabled { refreshProcesses() }
+    }
+
+    /// Énumération des process (libproc, potentiellement coûteuse) déportée hors
+    /// du MainActor pour ne pas figer le HUD. Le garde `listingInFlight` empêche
+    /// tout chevauchement : `procLister` est stateful (cache des deltas CPU) et
+    /// non thread-safe, donc on ne lance jamais deux `list()` en parallèle.
+    private var listingInFlight = false
+    private func refreshProcesses() {
+        guard !listingInFlight else { return }
+        listingInFlight = true
+        let lister = procLister
+        let maxP = maxProcesses
+        Task.detached(priority: .utility) {
+            let result = Array(
+                lister.list().sorted { $0.cpuPercent > $1.cpuPercent }.prefix(maxP)
             )
+            await MainActor.run { [weak self] in
+                guard let self else { return }
+                if self.processListingEnabled { self.processes = result }
+                self.listingInFlight = false
+            }
         }
     }
 }
