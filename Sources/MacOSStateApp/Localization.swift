@@ -43,7 +43,7 @@ enum L {
     }
 
     static let en: [String: String] = [
-        "Tendances": "Trends",
+        "Tendances": "Trends", "Barre de menu": "Menu bar", "Désactivée": "Off", "Température": "Temperature",
         "Réduire": "Collapse", "Détails": "Details", "Réduire en pastille": "Collapse to dot",
         "Afficher le HUD": "Show HUD", "Masquer le HUD": "Hide HUD",
         "Local": "Local", "Privé": "Private", "100% local (vérifié en CI)": "100% local (verified in CI)",
@@ -69,7 +69,7 @@ enum L {
     ]
 
     static let ar: [String: String] = [
-        "Tendances": "الاتجاهات",
+        "Tendances": "الاتجاهات", "Barre de menu": "شريط القوائم", "Désactivée": "معطّلة", "Température": "الحرارة",
         "Réduire": "تصغير", "Détails": "تفاصيل", "Réduire en pastille": "تصغير إلى أيقونة",
         "Afficher le HUD": "إظهار الواجهة", "Masquer le HUD": "إخفاء الواجهة",
         "Local": "محلي", "Privé": "خاص", "100% local (vérifié en CI)": "محلي 100٪ (يُتحقق منه في CI)",

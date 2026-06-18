@@ -24,6 +24,7 @@ Natif **Swift + SwiftUI/AppKit**. 100 % local, **aucun accès réseau** (garanti
 - **Réglages** : intervalle de rafraîchissement (1/2/5 s), métriques affichées, lancement
   au login.
 - **Sparklines d'historique** (tendances CPU / RAM / température sur les ~3 dernières min) en mode développé — 100% local.
+- **Lecture live en barre de menu** : métrique au choix (CPU / RAM / température) à côté de l'icône avec une mini-sparkline — d'un coup d'œil, 100% local.
 - **Interface trilingue** (FR / EN / AR) : menu Langue intégré, bascule en direct, RTL pour l'arabe.
 
 ## Sécurité (modèle)

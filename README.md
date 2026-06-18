@@ -22,6 +22,7 @@ Native **Swift + SwiftUI/AppKit**. 100% local, **no network access** (enforced b
   Launch at login, Quit.
 - **Settings**: refresh interval (1/2/5 s), displayed metrics, launch at login.
 - **History sparklines** (CPU / RAM / temperature trends over the last ~3 min) in expanded mode — fully local.
+- **Menu-bar live readout**: a chosen metric (CPU / RAM / temperature) next to the icon with a mini-sparkline — glanceable, fully local.
 - **Trilingual UI** (FR / EN / AR) with an in-app language menu, live switching, and RTL for Arabic.
 
 ## Security model

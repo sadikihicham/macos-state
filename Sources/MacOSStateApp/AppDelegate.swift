@@ -1,4 +1,5 @@
 import AppKit
+import Combine
 import SwiftUI
 import SystemMetrics
 
@@ -8,6 +9,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var panel: DesktopPanel?
     private var engine: MetricsEngine?
     private var statusItem: NSStatusItem?
+    private var cancellables = Set<AnyCancellable>()
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         let engine = MetricsEngine(settings: settings)
@@ -22,21 +24,70 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         setupStatusItem()
         self.engine = engine
         self.panel = panel
+
+        // Lecture live en barre de menu : suit chaque snapshot publié.
+        engine.$snapshot
+            .receive(on: RunLoop.main)
+            .sink { [weak self] s in self?.updateStatusReadout(s) }
+            .store(in: &cancellables)
     }
 
     // MARK: - Icône barre de menu (à côté de l'horloge)
 
     private func setupStatusItem() {
         let item = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
-        if let button = item.button {
-            let img = NSImage(systemSymbolName: "gauge.with.dots.needle.50percent",
-                              accessibilityDescription: "macOS State")
-            img?.isTemplate = true                 // s'adapte clair/sombre de la barre
-            button.image = img
-            button.toolTip = "macOS State"
-        }
+        item.button?.image = gaugeImage()
+        item.button?.toolTip = "macOS State"
         item.menu = buildMenu()
         self.statusItem = item
+    }
+
+    private func gaugeImage() -> NSImage? {
+        let img = NSImage(systemSymbolName: "gauge.with.dots.needle.50percent",
+                          accessibilityDescription: "macOS State")
+        img?.isTemplate = true                     // s'adapte clair/sombre de la barre
+        return img
+    }
+
+    /// Met à jour le texte (+ mini-sparkline) à côté de l'icône de la barre de menu.
+    private func updateStatusReadout(_ s: MetricsSnapshot) {
+        guard let button = statusItem?.button else { return }
+        let metric = settings.menubarMetric
+        guard metric != "off" else {
+            button.image = gaugeImage(); button.imagePosition = .imageOnly; button.title = ""
+            return
+        }
+        let text: String, history: [Double]
+        switch metric {
+        case "ram":  text = "\(Int((s.memory * 100).rounded()))%"; history = s.ramHistory
+        case "temp": text = s.cpuTempC.map { "\(Int($0.rounded()))°" } ?? "—"; history = s.tempHistory
+        default:     text = "\(Int((s.cpu * 100).rounded()))%"; history = s.cpuHistory
+        }
+        button.image = sparklineImage(history) ?? gaugeImage()
+        button.imagePosition = .imageLeading
+        button.font = .monospacedDigitSystemFont(ofSize: 11, weight: .medium)
+        button.title = " " + text
+    }
+
+    /// Mini-sparkline monochrome (template → s'adapte clair/sombre) de l'historique.
+    private func sparklineImage(_ values: [Double]) -> NSImage? {
+        guard values.count > 1 else { return nil }
+        let size = NSSize(width: 22, height: 12)
+        let img = NSImage(size: size)
+        img.lockFocus()
+        let path = NSBezierPath()
+        path.lineWidth = 1
+        let step = size.width / CGFloat(values.count - 1)
+        for (i, v) in values.enumerated() {
+            let pt = NSPoint(x: CGFloat(i) * step,
+                             y: 1 + (size.height - 2) * CGFloat(min(1, max(0, v))))
+            if i == 0 { path.move(to: pt) } else { path.line(to: pt) }
+        }
+        NSColor.black.setStroke()
+        path.stroke()
+        img.unlockFocus()
+        img.isTemplate = true
+        return img
     }
 
     /// Menu partagé (barre de menu + clic droit HUD). Deux instances distinctes.
@@ -94,6 +145,20 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         langItem.submenu = langMenu
         menu.addItem(langItem)
 
+        // Sous-menu Barre de menu (métrique live affichée à côté de l'icône).
+        let mbItem = NSMenuItem(title: t("Barre de menu"), action: nil, keyEquivalent: "")
+        let mbMenu = NSMenu()
+        let mbLabels = ["off": "Désactivée", "cpu": "CPU", "ram": "Mémoire", "temp": "Température"]
+        for code in Settings.menubarChoices {
+            let it = NSMenuItem(title: t(mbLabels[code] ?? code),
+                                action: #selector(setMenubarMetric(_:)), keyEquivalent: "")
+            it.target = self
+            it.representedObject = code
+            mbMenu.addItem(it)
+        }
+        mbItem.submenu = mbMenu
+        menu.addItem(mbItem)
+
         let login = NSMenuItem(title: t("Lancer au login"),
                                action: #selector(toggleLaunchAtLogin(_:)), keyEquivalent: "")
         login.target = self
@@ -104,6 +169,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                                 action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q"))
         menu.userInterfaceLayoutDirection = L.isRTL(L.lang) ? .rightToLeft : .leftToRight
         return menu
+    }
+
+    @objc private func setMenubarMetric(_ sender: NSMenuItem) {
+        guard let code = sender.representedObject as? String else { return }
+        settings.menubarMetric = code
+        if let s = engine?.snapshot { updateStatusReadout(s) }   // mise à jour immédiate
     }
 
     @objc private func setLanguage(_ sender: NSMenuItem) {
@@ -144,6 +215,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             menuItem.title = (panel?.isVisible == true) ? t("Masquer le HUD") : t("Afficher le HUD")
         case #selector(setLanguage(_:)):
             menuItem.state = (menuItem.representedObject as? String == L.lang) ? .on : .off
+        case #selector(setMenubarMetric(_:)):
+            menuItem.state = (menuItem.representedObject as? String == settings.menubarMetric) ? .on : .off
         case #selector(toggleFloatOnTop(_:)):
             menuItem.state = settings.floatOnTop ? .on : .off
         case #selector(setInterval(_:)):

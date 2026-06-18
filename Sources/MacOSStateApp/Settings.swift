@@ -62,4 +62,11 @@ final class Settings {
 
     /// Intervalles proposés dans le menu.
     static let intervalChoices: [Double] = [1, 2, 5]
+
+    /// Métrique affichée en texte (+ sparkline) dans la barre de menu.
+    var menubarMetric: String {
+        get { d.string(forKey: "menubar.metric") ?? "cpu" }
+        set { d.set(newValue, forKey: "menubar.metric") }
+    }
+    static let menubarChoices = ["off", "cpu", "ram", "temp"]
 }
