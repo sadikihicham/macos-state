@@ -1,9 +1,14 @@
 import SwiftUI
 import SystemMetrics
 
-/// HUD — mode réduit (Slice 1) : jauges CPU/RAM/Disque + débit réseau + batterie.
+/// HUD — mode réduit (jauges) ⇄ développé (détails). Le bouton chevron bascule
+/// l'état persisté ; le panneau se redimensionne via `onResize`.
 struct HUDView: View {
     @ObservedObject var engine: MetricsEngine
+    /// Notifie l'hôte AppKit de la taille idéale pour redimensionner le panneau.
+    var onResize: (CGSize) -> Void = { _ in }
+
+    @AppStorage("hud.expanded") private var expanded = false
 
     private var s: MetricsSnapshot { engine.snapshot }
 
@@ -21,6 +26,8 @@ struct HUDView: View {
 
             networkRow
             if let b = s.battery { batteryRow(b) }
+
+            if expanded { ExpandedDetails(s: s) }
         }
         .padding(12)
         .frame(width: 232, alignment: .topLeading)
@@ -30,6 +37,7 @@ struct HUDView: View {
                 .strokeBorder(.white.opacity(0.12), lineWidth: 1)
         )
         .fixedSize()
+        .onGeometryChange(for: CGSize.self) { $0.size } action: { onResize($0) }
     }
 
     private var header: some View {
@@ -39,6 +47,15 @@ struct HUDView: View {
             Text("macOS State")
                 .font(.system(size: 12, weight: .semibold, design: .rounded))
             Spacer()
+            Button {
+                expanded.toggle()
+            } label: {
+                Image(systemName: expanded ? "chevron.up" : "chevron.down")
+                    .font(.system(size: 10, weight: .bold))
+                    .foregroundStyle(.secondary)
+            }
+            .buttonStyle(.plain)
+            .help(expanded ? "Réduire" : "Détails")
         }
     }
 

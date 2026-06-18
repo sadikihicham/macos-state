@@ -44,6 +44,18 @@ final class DesktopPanel: NSPanel {
     override var canBecomeKey: Bool { false }
     override var canBecomeMain: Bool { false }
 
+    /// Redimensionne en gardant le bord supérieur-gauche fixe (HUD ancré en haut).
+    func resizeKeepingTopLeft(to size: CGSize) {
+        guard size.width > 0, size.height > 0 else { return }
+        var f = frame
+        if abs(f.width - size.width) < 0.5 && abs(f.height - size.height) < 0.5 { return }
+        let topY = f.maxY
+        f.size = size
+        f.origin.y = topY - size.height
+        setFrame(f, display: true, animate: false)
+        settings.hudOrigin = f.origin
+    }
+
     /// Installe la vue SwiftUI hôte + le menu contextuel, puis affiche.
     func present(content view: NSView, menu: NSMenu) {
         view.menu = menu

@@ -2,17 +2,31 @@ import Foundation
 import Combine
 import SystemMetrics
 
+/// Débit réseau par interface (mode développé).
+struct InterfaceRate: Identifiable {
+    let id: String
+    let down: Double
+    let up: Double
+}
+
 /// Instantané présentable consommé par le HUD.
 struct MetricsSnapshot {
     var cpu: Double = 0                 // 0...1
+    var cpuCores: [Double] = []         // par cœur
     var memory: Double = 0
     var memoryUsedBytes: UInt64 = 0
     var memoryTotalBytes: UInt64 = 0
+    var memActive: UInt64 = 0
+    var memWired: UInt64 = 0
+    var memCompressed: UInt64 = 0
+    var memFree: UInt64 = 0
     var disk: Double = 0
     var diskUsedBytes: Int64 = 0
     var diskTotalBytes: Int64 = 0
+    var diskFreeBytes: Int64 { max(0, diskTotalBytes - diskUsedBytes) }
     var netDown: Double = 0             // octets/s
     var netUp: Double = 0
+    var interfaces: [InterfaceRate] = []
     var battery: BatteryInfo? = nil
     var hasBattery: Bool { battery != nil }
 }
@@ -56,10 +70,16 @@ final class MetricsEngine: ObservableObject {
     private func tick() {
         var s = snapshot
         if let u = cpu.usage() { s.cpu = u }
+        let cores = cpu.perCoreUsage()
+        if !cores.isEmpty { s.cpuCores = cores }
         if let m = mem.read() {
             s.memory = m.fraction
             s.memoryUsedBytes = m.usedBytes
             s.memoryTotalBytes = m.totalBytes
+            s.memActive = m.activeBytes
+            s.memWired = m.wiredBytes
+            s.memCompressed = m.compressedBytes
+            s.memFree = m.freeBytes
         }
         if let d = disk.read() {
             s.disk = d.fraction
@@ -69,6 +89,7 @@ final class MetricsEngine: ObservableObject {
         let r = net.rates()
         s.netDown = r.down
         s.netUp = r.up
+        s.interfaces = net.interfaceRates().map { InterfaceRate(id: $0.name, down: $0.down, up: $0.up) }
         s.battery = battery.read()
         snapshot = s
     }

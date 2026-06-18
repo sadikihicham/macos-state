@@ -24,23 +24,52 @@ public final class NetworkSampler {
 
     /// Somme des octets reçus/émis sur les interfaces physiques actives.
     static func readCounters() -> (rx: UInt64, tx: UInt64) {
+        var rx: UInt64 = 0, tx: UInt64 = 0
+        for (_, c) in readPerInterface() { rx &+= c.rx; tx &+= c.tx }
+        return (rx, tx)
+    }
+
+    /// Compteurs cumulés par interface (hors loopback).
+    static func readPerInterface() -> [String: (rx: UInt64, tx: UInt64)] {
         var head: UnsafeMutablePointer<ifaddrs>?
-        guard getifaddrs(&head) == 0 else { return (0, 0) }
+        guard getifaddrs(&head) == 0 else { return [:] }
         defer { freeifaddrs(head) }
 
-        var rx: UInt64 = 0, tx: UInt64 = 0
+        var out: [String: (rx: UInt64, tx: UInt64)] = [:]
         var ptr = head
         while let cur = ptr {
             defer { ptr = cur.pointee.ifa_next }
             guard let addr = cur.pointee.ifa_addr,
                   addr.pointee.sa_family == UInt8(AF_LINK) else { continue }
             let name = String(cString: cur.pointee.ifa_name)
-            if name.hasPrefix("lo") { continue } // exclut loopback
+            if name == "lo0" { continue } // exclut loopback
             guard let raw = cur.pointee.ifa_data else { continue }
             let data = raw.assumingMemoryBound(to: if_data.self).pointee
-            rx &+= UInt64(data.ifi_ibytes)
-            tx &+= UInt64(data.ifi_obytes)
+            out[name] = (UInt64(data.ifi_ibytes), UInt64(data.ifi_obytes))
         }
-        return (rx, tx)
+        return out
+    }
+
+    // MARK: - Par interface (mode développé)
+
+    private var perIface: [String: (rx: UInt64, tx: UInt64, t: DispatchTime)] = [:]
+
+    /// Débits (down, up) par interface active, triés par activité décroissante.
+    public func interfaceRates() -> [(name: String, down: Double, up: Double)] {
+        let now = DispatchTime.now()
+        let counters = Self.readPerInterface()
+        var result: [(name: String, down: Double, up: Double)] = []
+
+        for (name, c) in counters {
+            defer { perIface[name] = (c.rx, c.tx, now) }
+            guard let prev = perIface[name] else { continue }
+            let seconds = Double(now.uptimeNanoseconds - prev.t.uptimeNanoseconds) / 1_000_000_000
+            let down = Metrics.rate(delta: Metrics.delta(c.rx, prev.rx), seconds: seconds)
+            let up = Metrics.rate(delta: Metrics.delta(c.tx, prev.tx), seconds: seconds)
+            if down > 0 || up > 0 { result.append((name, down, up)) }
+        }
+        // Purge des interfaces disparues.
+        perIface = perIface.filter { counters.keys.contains($0.key) }
+        return result.sorted { ($0.down + $0.up) > ($1.down + $1.up) }
     }
 }

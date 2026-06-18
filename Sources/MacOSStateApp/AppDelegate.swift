@@ -8,8 +8,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         let engine = MetricsEngine(settings: settings)
-        let host = NSHostingView(rootView: HUDView(engine: engine))
         let panel = DesktopPanel(settings: settings)
+        let host = NSHostingView(rootView: HUDView(engine: engine, onResize: { [weak panel] size in
+            panel?.resizeKeepingTopLeft(to: size)
+        }))
         panel.present(content: host, menu: makeContextMenu())
         engine.start()
         self.engine = engine

@@ -5,8 +5,17 @@ import Darwin
 public struct MemorySample: Equatable {
     public let usedBytes: UInt64
     public let totalBytes: UInt64
-    public init(usedBytes: UInt64, totalBytes: UInt64) {
+    // Ventilation (mode développé).
+    public let activeBytes: UInt64
+    public let wiredBytes: UInt64
+    public let compressedBytes: UInt64
+    public let freeBytes: UInt64
+    public init(usedBytes: UInt64, totalBytes: UInt64,
+                activeBytes: UInt64 = 0, wiredBytes: UInt64 = 0,
+                compressedBytes: UInt64 = 0, freeBytes: UInt64 = 0) {
         self.usedBytes = usedBytes; self.totalBytes = totalBytes
+        self.activeBytes = activeBytes; self.wiredBytes = wiredBytes
+        self.compressedBytes = compressedBytes; self.freeBytes = freeBytes
     }
     public var fraction: Double {
         Metrics.fraction(used: Double(usedBytes), total: Double(totalBytes))
@@ -41,11 +50,15 @@ public final class MemorySampler {
         guard result == KERN_SUCCESS else { return nil }
 
         let ps = UInt64(pageSize)
+        let active = UInt64(stats.active_count) * ps
+        let wired = UInt64(stats.wire_count) * ps
+        let compressed = UInt64(stats.compressor_page_count) * ps
+        let free = UInt64(stats.free_count) * ps
         // « Utilisé » ≈ pages actives + câblées + compressées (cache exclu).
-        let used = (UInt64(stats.active_count)
-            + UInt64(stats.wire_count)
-            + UInt64(stats.compressor_page_count)) * ps
+        let used = active + wired + compressed
 
-        return MemorySample(usedBytes: used, totalBytes: Self.totalBytes())
+        return MemorySample(usedBytes: used, totalBytes: Self.totalBytes(),
+                            activeBytes: active, wiredBytes: wired,
+                            compressedBytes: compressed, freeBytes: free)
     }
 }

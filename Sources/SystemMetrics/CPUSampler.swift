@@ -44,4 +44,49 @@ public final class CPUSampler {
         guard let prev = previous else { return nil }
         return Metrics.cpuUsage(current: cur, previous: prev)
     }
+
+    // MARK: - Par cœur
+
+    private var previousCores: [CPUSample]?
+
+    /// Lecture brute des ticks par cœur via `host_processor_info`.
+    public func readPerCore() -> [CPUSample]? {
+        var cpuCount: natural_t = 0
+        var info: processor_info_array_t?
+        var infoCount: mach_msg_type_number_t = 0
+
+        let kr = host_processor_info(mach_host_self(), PROCESSOR_CPU_LOAD_INFO,
+                                     &cpuCount, &info, &infoCount)
+        guard kr == KERN_SUCCESS, let info else { return nil }
+        // Le buffer est alloué par le kernel : il faut le libérer.
+        defer {
+            vm_deallocate(mach_task_self_,
+                          vm_address_t(UInt(bitPattern: info)),
+                          vm_size_t(infoCount) * vm_size_t(MemoryLayout<integer_t>.stride))
+        }
+
+        let states = Int(CPU_STATE_MAX)
+        let buf = UnsafeBufferPointer(start: info, count: Int(infoCount))
+        var samples: [CPUSample] = []
+        samples.reserveCapacity(Int(cpuCount))
+        for i in 0..<Int(cpuCount) {
+            let base = i * states
+            guard base + Int(CPU_STATE_NICE) < buf.count else { break }
+            samples.append(CPUSample(
+                user:   UInt64(UInt32(bitPattern: buf[base + Int(CPU_STATE_USER)])),
+                system: UInt64(UInt32(bitPattern: buf[base + Int(CPU_STATE_SYSTEM)])),
+                idle:   UInt64(UInt32(bitPattern: buf[base + Int(CPU_STATE_IDLE)])),
+                nice:   UInt64(UInt32(bitPattern: buf[base + Int(CPU_STATE_NICE)]))
+            ))
+        }
+        return samples
+    }
+
+    /// Usage [0...1] par cœur depuis le dernier appel. [] tant qu'il n'y a pas de delta.
+    public func perCoreUsage() -> [Double] {
+        guard let cur = readPerCore() else { return [] }
+        defer { previousCores = cur }
+        guard let prev = previousCores, prev.count == cur.count else { return [] }
+        return zip(cur, prev).map { Metrics.cpuUsage(current: $0, previous: $1) }
+    }
 }
