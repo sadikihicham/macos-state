@@ -4,6 +4,8 @@ import SystemMetrics
 /// Section "développée" : détails par métrique sous les jauges.
 struct ExpandedDetails: View {
     let s: MetricsSnapshot
+    @AppStorage("app.lang") private var lang = "fr"
+    private func tr(_ x: String) -> String { L.t(x, lang) }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 9) {
@@ -19,7 +21,7 @@ struct ExpandedDetails: View {
     // MARK: CPU par cœur (grille de mini-barres)
     private var cpuCores: some View {
         VStack(alignment: .leading, spacing: 4) {
-            sectionTitle("CPU · \(s.cpuCores.count) cœurs")
+            sectionTitle("\(tr("CPU ·")) \(s.cpuCores.count) \(tr("cœurs"))")
             let cols = Array(repeating: GridItem(.flexible(), spacing: 4), count: 4)
             LazyVGrid(columns: cols, spacing: 4) {
                 ForEach(Array(s.cpuCores.enumerated()), id: \.offset) { _, v in

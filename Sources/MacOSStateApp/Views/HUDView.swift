@@ -20,6 +20,10 @@ struct HUDView: View {
     @AppStorage("hud.show.net") private var showNet = true
     @AppStorage("hud.show.battery") private var showBattery = true
     @AppStorage("hud.show.thermal") private var showThermal = true
+    @AppStorage("app.lang") private var lang = "fr"
+
+    /// Traduit selon la langue courante (le `lang` observé déclenche le re-rendu).
+    private func tr(_ s: String) -> String { L.t(s, lang) }
 
     private var s: MetricsSnapshot { engine.snapshot }
 
@@ -27,6 +31,8 @@ struct HUDView: View {
         Group {
             if minimized { puck } else { fullHUD }
         }
+        .environment(\.locale, Locale(identifier: lang))
+        .environment(\.layoutDirection, L.isRTL(lang) ? .rightToLeft : .leftToRight)
         .onGeometryChange(for: CGSize.self) { $0.size } action: { onResize($0) }
         .onAppear { syncProcessListing() }
         .onChange(of: expanded) { _, _ in syncProcessListing() }
@@ -49,7 +55,7 @@ struct HUDView: View {
             .overlay(Circle().strokeBorder(.white.opacity(0.12), lineWidth: 1))
             .contentShape(Circle())
             .onTapGesture { minimized = false }
-            .help("Afficher le HUD")
+            .help(tr("Afficher le HUD"))
             .fixedSize()
     }
 
@@ -59,13 +65,13 @@ struct HUDView: View {
             Divider().opacity(0.35)
 
             if showCPU {
-                MetricRow(icon: "cpu", label: "CPU", value: s.cpu, trailing: percent(s.cpu))
+                MetricRow(icon: "cpu", label: tr("CPU"), value: s.cpu, trailing: percent(s.cpu))
             }
             if showRAM {
-                MetricRow(icon: "memorychip", label: "RAM", value: s.memory, trailing: percent(s.memory))
+                MetricRow(icon: "memorychip", label: tr("RAM"), value: s.memory, trailing: percent(s.memory))
             }
             if showDisk {
-                MetricRow(icon: "internaldrive", label: "Disq", value: s.disk, trailing: percent(s.disk))
+                MetricRow(icon: "internaldrive", label: tr("Disq"), value: s.disk, trailing: percent(s.disk))
             }
             if showNet { networkRow }
             if showBattery, let b = s.battery { batteryRow(b) }
@@ -111,7 +117,7 @@ struct HUDView: View {
                     .foregroundStyle(.secondary)
             }
             .buttonStyle(.plain)
-            .help(expanded ? "Réduire" : "Détails")
+            .help(expanded ? tr("Réduire") : tr("Détails"))
 
             Button {
                 minimized = true
@@ -121,7 +127,7 @@ struct HUDView: View {
                     .foregroundStyle(.secondary)
             }
             .buttonStyle(.plain)
-            .help("Réduire en pastille")
+            .help(tr("Réduire en pastille"))
         }
     }
 
@@ -133,7 +139,7 @@ struct HUDView: View {
         HStack(spacing: 2) {
             Image(systemName: s.openSockets == 0 ? "lock.shield.fill" : "lock.shield")
                 .font(.system(size: 8))
-            Text("Local").font(.system(size: 8, weight: .bold, design: .rounded))
+            Text(tr("Local")).font(.system(size: 8, weight: .bold, design: .rounded))
         }
         .foregroundStyle(.green)
         .padding(.horizontal, 4).padding(.vertical, 1)
@@ -157,16 +163,16 @@ struct HUDView: View {
         HStack(spacing: 7) {
             Image(systemName: "lock.shield").font(.system(size: 10))
                 .foregroundStyle(.green).frame(width: 13)
-            Text("Privé").font(.system(size: 10, weight: .medium))
+            Text(tr("Privé")).font(.system(size: 10, weight: .medium))
                 .foregroundStyle(.secondary).frame(width: 34, alignment: .leading)
             if let n = s.openSockets {
                 Image(systemName: n == 0 ? "checkmark.seal.fill" : "exclamationmark.triangle.fill")
                     .font(.system(size: 9)).foregroundStyle(n == 0 ? .green : .orange)
-                Text(n == 0 ? "0 socket réseau ouvert" : "\(n) socket(s) ouvert(s)")
+                Text(n == 0 ? tr("0 socket réseau ouvert") : "\(n) socket(s)")
                     .font(.system(size: 10, design: .rounded)).monospacedDigit()
                     .foregroundStyle(n == 0 ? .green : .orange)
             } else {
-                Text("100% local (vérifié en CI)")
+                Text(tr("100% local (vérifié en CI)"))
                     .font(.system(size: 10, design: .rounded)).foregroundStyle(.secondary)
             }
             Spacer(minLength: 4)
@@ -177,7 +183,7 @@ struct HUDView: View {
         HStack(spacing: 7) {
             Image(systemName: "network").font(.system(size: 10))
                 .foregroundStyle(.secondary).frame(width: 13)
-            Text("Rés").font(.system(size: 10, weight: .medium))
+            Text(tr("Rés")).font(.system(size: 10, weight: .medium))
                 .foregroundStyle(.secondary).frame(width: 34, alignment: .leading)
             Label(Metrics.formatRate(s.netDown), systemImage: "arrow.down")
                 .font(.system(size: 10, design: .rounded)).monospacedDigit()
@@ -195,7 +201,7 @@ struct HUDView: View {
             Image(systemName: batteryIcon(b)).font(.system(size: 10))
                 .foregroundStyle(b.percent <= 20 && !b.isPluggedIn ? .red : .secondary)
                 .frame(width: 13)
-            Text("Bat").font(.system(size: 10, weight: .medium))
+            Text(tr("Bat")).font(.system(size: 10, weight: .medium))
                 .foregroundStyle(.secondary).frame(width: 34, alignment: .leading)
             Text("\(b.percent)%")
                 .font(.system(size: 10, weight: .semibold, design: .rounded)).monospacedDigit()
@@ -211,7 +217,7 @@ struct HUDView: View {
         HStack(spacing: 7) {
             Image(systemName: "thermometer.medium").font(.system(size: 10))
                 .foregroundStyle(.secondary).frame(width: 13)
-            Text("Temp").font(.system(size: 10, weight: .medium))
+            Text(tr("Temp")).font(.system(size: 10, weight: .medium))
                 .foregroundStyle(.secondary).frame(width: 34, alignment: .leading)
             if let t = s.cpuTempC {
                 Text("\(Int(t.rounded()))°C")
@@ -226,7 +232,7 @@ struct HUDView: View {
                     .font(.system(size: 10, design: .rounded)).monospacedDigit()
                     .foregroundStyle(.secondary)
             } else {
-                Text("vent. N/A").font(.system(size: 9)).foregroundStyle(.secondary)
+                Text(tr("vent. N/A")).font(.system(size: 9)).foregroundStyle(.secondary)
             }
         }
         .labelStyle(.titleAndIcon)
