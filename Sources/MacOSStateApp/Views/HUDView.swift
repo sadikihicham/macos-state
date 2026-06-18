@@ -38,6 +38,8 @@ struct HUDView: View {
             if showBattery, let b = s.battery { batteryRow(b) }
 
             if expanded {
+                Divider().opacity(0.35)
+                networkProofRow
                 ExpandedDetails(s: s)
                 if !engine.processes.isEmpty {
                     Divider().opacity(0.35)
@@ -83,18 +85,51 @@ struct HUDView: View {
     }
 
     /// Sceau différenciateur : l'app est 100% locale, sans aucune capacité réseau.
-    /// Adossé à l'invariant vérifié en CI (`make check-net`) — une garantie qu'un
-    /// moniteur qui « téléphone dehors » ne peut pas afficher honnêtement.
+    /// Adossé à l'invariant vérifié en CI (`make check-net`) ET à une preuve runtime
+    /// (sockets réellement ouverts) — une garantie qu'un moniteur qui « téléphone
+    /// dehors » ne peut pas afficher honnêtement.
     private var localSeal: some View {
         HStack(spacing: 2) {
-            Image(systemName: "lock.shield.fill").font(.system(size: 8))
+            Image(systemName: s.openSockets == 0 ? "lock.shield.fill" : "lock.shield")
+                .font(.system(size: 8))
             Text("Local").font(.system(size: 8, weight: .bold, design: .rounded))
         }
         .foregroundStyle(.green)
         .padding(.horizontal, 4).padding(.vertical, 1)
         .background(.green.opacity(0.14), in: Capsule())
-        .help("100% local — aucune capacité réseau (invariant vérifié en CI : make check-net).")
+        .help(sealTooltip)
         .accessibilityLabel("Application 100% locale, sans accès réseau")
+    }
+
+    private var sealTooltip: String {
+        let base = "100% local — invariant vérifié en CI (make check-net)."
+        switch s.openSockets {
+        case 0:  return "Preuve en direct : 0 socket réseau ouvert. " + base
+        case let n?: return "\(n) socket(s) ouvert(s). " + base
+        case nil: return base
+        }
+    }
+
+    /// Ligne de preuve tangible (mode développé) : nombre de sockets réseau
+    /// réellement ouverts par l'app, lu en direct via libproc.
+    private var networkProofRow: some View {
+        HStack(spacing: 7) {
+            Image(systemName: "lock.shield").font(.system(size: 10))
+                .foregroundStyle(.green).frame(width: 13)
+            Text("Privé").font(.system(size: 10, weight: .medium))
+                .foregroundStyle(.secondary).frame(width: 34, alignment: .leading)
+            if let n = s.openSockets {
+                Image(systemName: n == 0 ? "checkmark.seal.fill" : "exclamationmark.triangle.fill")
+                    .font(.system(size: 9)).foregroundStyle(n == 0 ? .green : .orange)
+                Text(n == 0 ? "0 socket réseau ouvert" : "\(n) socket(s) ouvert(s)")
+                    .font(.system(size: 10, design: .rounded)).monospacedDigit()
+                    .foregroundStyle(n == 0 ? .green : .orange)
+            } else {
+                Text("100% local (vérifié en CI)")
+                    .font(.system(size: 10, design: .rounded)).foregroundStyle(.secondary)
+            }
+            Spacer(minLength: 4)
+        }
     }
 
     private var networkRow: some View {

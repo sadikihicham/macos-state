@@ -29,6 +29,9 @@ struct MetricsSnapshot {
     var interfaces: [InterfaceRate] = []
     var battery: BatteryInfo? = nil
     var hasBattery: Bool { battery != nil }
+    /// Preuve runtime de confidentialité : nb de sockets réseau ouverts par
+    /// l'app (nil si illisible). 0 = aucune connexion, prouvé en direct.
+    var openSockets: Int? = nil
 }
 
 /// Pilote les samplers via un Timer et publie un snapshot pour SwiftUI.
@@ -113,6 +116,7 @@ final class MetricsEngine: ObservableObject {
         s.netUp = r.up
         s.interfaces = net.interfaceRates().map { InterfaceRate(id: $0.name, down: $0.down, up: $0.up) }
         s.battery = battery.read()
+        s.openSockets = NetworkProof.openSocketCount()
         snapshot = s
 
         if processListingEnabled {
