@@ -45,7 +45,7 @@ static double scan_temperatures(const char *token, int print) {
 
     CFDictionaryRef matching = make_matching(kHIDPage_AppleVendor,
                                              kHIDUsage_AppleVendor_TemperatureSensor);
-    IOHIDEventSystemClientSetMatching(client, matching);
+    if (matching) IOHIDEventSystemClientSetMatching(client, matching);
     CFArrayRef services = IOHIDEventSystemClientCopyServices(client);
 
     double sum = 0.0;
@@ -80,7 +80,7 @@ static double scan_temperatures(const char *token, int print) {
         CFRelease(services);
     }
 
-    CFRelease(matching);
+    if (matching) CFRelease(matching);
     CFRelease((CFTypeRef)client);
     return n > 0 ? sum / n : -1.0;
 }

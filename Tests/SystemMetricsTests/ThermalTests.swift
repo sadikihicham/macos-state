@@ -16,6 +16,13 @@ final class ThermalTests: XCTestCase {
         XCTAssertEqual(SMCFan.fourCC("FNumXYZ"), SMCFan.fourCC("FNum"))
     }
 
+    func testFourCCPadsShortCodesWithSpaces() {
+        // Régression : un type 3-lettres doit être padé à droite par 0x20 (espace),
+        // sinon il ne matche jamais le dataType renvoyé par le kernel.
+        XCTAssertEqual(SMCFan.fourCC("flt"), 0x66_6C_74_20)   // "flt "
+        XCTAssertEqual(SMCFan.fourCC("ui8"), 0x75_69_38_20)   // "ui8 "
+    }
+
     // MARK: Modèle
 
     func testThermalSampleStoresValues() {

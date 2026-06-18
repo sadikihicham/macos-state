@@ -26,12 +26,20 @@ public enum NetworkProof {
         let needed = proc_pidinfo(pid, PROC_PIDLISTFDS, 0, nil, 0)
         guard needed > 0 else { return needed == 0 ? 0 : nil }
 
-        let cap = Int(needed) / stride + 16          // marge pour la course
-        var buf = [proc_fdinfo](repeating: proc_fdinfo(), count: cap)
-        let got = proc_pidinfo(pid, PROC_PIDLISTFDS, 0, &buf, Int32(cap * stride))
-        guard got > 0 else { return nil }
-
-        let n = Int(got) / stride
-        return socketCount(fdTypes: buf.prefix(n).map { UInt32($0.proc_fdtype) })
+        // proc_pidinfo NE signale PAS un buffer trop petit : il remplit ce qui
+        // rentre et renvoie les octets écrits, plafonnés à la taille fournie. Un
+        // buffer plein = troncature probable (fd manquants → sous-comptage). On
+        // agrandit et on réessaie tant que c'est saturé ; sinon on retourne nil
+        // (pas de preuve faussement rassurante).
+        var cap = Int(needed) / stride + 16
+        for _ in 0..<5 {
+            var buf = [proc_fdinfo](repeating: proc_fdinfo(), count: cap)
+            let got = proc_pidinfo(pid, PROC_PIDLISTFDS, 0, &buf, Int32(cap * stride))
+            guard got > 0 else { return got == 0 ? 0 : nil }
+            if Int(got) >= cap * stride { cap *= 2; continue }   // saturé → agrandir
+            let n = Int(got) / stride
+            return socketCount(fdTypes: buf.prefix(n).map { UInt32($0.proc_fdtype) })
+        }
+        return nil
     }
 }

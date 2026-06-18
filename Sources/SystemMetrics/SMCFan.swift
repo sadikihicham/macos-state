@@ -12,10 +12,15 @@ enum SMCFan {
     private static let kSMCReadKey: UInt8 = 5
     private static let kSMCGetKeyInfo: UInt8 = 9
 
-    /// Clé SMC sur 4 caractères → FourCharCode.
+    /// Clé/type SMC → FourCharCode. Les codes SMC font 4 octets ALIGNÉS À GAUCHE
+    /// et complétés par des ESPACES (ex. le type "flt" est stocké "flt " =
+    /// 0x666C7420). On padde donc à droite avec 0x20, sinon un code de 3 lettres
+    /// ne matche jamais le type renvoyé par le kernel.
     static func fourCC(_ s: String) -> UInt32 {
         var r: UInt32 = 0
-        for b in s.utf8.prefix(4) { r = (r << 8) | UInt32(b) }
+        var n = 0
+        for b in s.utf8.prefix(4) { r = (r << 8) | UInt32(b); n += 1 }
+        while n < 4 { r = (r << 8) | 0x20; n += 1 }
         return r
     }
 
@@ -88,8 +93,10 @@ enum SMCFan {
         return (decode(type: type, bytes: arr), type, size)
     }
 
-    /// Décode une valeur SMC selon son type (flt little-endian, fpe2 big-endian
-    /// point fixe, ui8/ui16).
+    /// Décode une valeur SMC selon son type. Strict : on ne décode QUE les types
+    /// connus (flt little-endian, fpe2 point fixe BE, ui8/ui16 BE) et on renvoie
+    /// nil pour un type inconnu — plutôt que de relire des octets au hasard et
+    /// produire une valeur fausse silencieuse.
     private static func decode(type: UInt32, bytes: [UInt8]) -> Double? {
         if type == fourCC("flt"), bytes.count >= 4 {
             let bits = UInt32(bytes[0]) | UInt32(bytes[1]) << 8 | UInt32(bytes[2]) << 16 | UInt32(bytes[3]) << 24
@@ -98,8 +105,8 @@ enum SMCFan {
         if type == fourCC("fpe2"), bytes.count >= 2 {
             return Double(UInt16(bytes[0]) << 8 | UInt16(bytes[1])) / 4.0
         }
-        if bytes.count >= 2 { return Double(UInt16(bytes[0]) << 8 | UInt16(bytes[1])) }
-        if bytes.count == 1 { return Double(bytes[0]) }
+        if type == fourCC("ui8"), bytes.count >= 1 { return Double(bytes[0]) }
+        if type == fourCC("ui16"), bytes.count >= 2 { return Double(UInt16(bytes[0]) << 8 | UInt16(bytes[1])) }
         return nil
     }
 }

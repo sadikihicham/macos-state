@@ -29,9 +29,17 @@ enum L {
         }
     }
 
-    /// Gabarit localisé avec arguments (placeholders %@).
+    /// Gabarit localisé avec arguments (placeholders %@). Anti-crash :
+    /// `String(format:)` plante si le nombre de %@ ≠ nombre d'arguments (facile à
+    /// casser dans une traduction éditée à la main, surtout en RTL). On vérifie la
+    /// parité avant de formater ; sinon on retombe sur le gabarit FR, puis sur le
+    /// gabarit brut — jamais de crash.
     static func fmt(_ frTemplate: String, _ args: CVarArg...) -> String {
-        String(format: t(frTemplate), arguments: args)
+        func slots(_ s: String) -> Int { s.components(separatedBy: "%@").count - 1 }
+        let template = t(frTemplate)
+        if slots(template) == args.count { return String(format: template, arguments: args) }
+        if slots(frTemplate) == args.count { return String(format: frTemplate, arguments: args) }
+        return frTemplate
     }
 
     static let en: [String: String] = [

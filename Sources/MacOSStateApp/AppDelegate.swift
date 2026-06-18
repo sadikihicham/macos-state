@@ -102,6 +102,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         menu.addItem(.separator())
         menu.addItem(NSMenuItem(title: t("Quitter macOS State"),
                                 action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q"))
+        menu.userInterfaceLayoutDirection = L.isRTL(L.lang) ? .rightToLeft : .leftToRight
         return menu
     }
 
@@ -226,3 +227,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             : NSWindow.Level(rawValue: Int(CGWindowLevelForKey(.desktopIconWindow)) + 1)
     }
 }
+
+// Conformance explicite : garantit que validateMenuItem(_:) est bien appelé pour
+// l'état/les titres dynamiques des items (sinon dépendance au comportement informel).
+extension AppDelegate: NSMenuItemValidation {}
