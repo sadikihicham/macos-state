@@ -42,9 +42,11 @@ symbols and **fails** if any network capability is present (CFNetwork, Network.f
 `_connect`, `URLSession`, `NWConnection`, …). `getifaddrs`/`freeifaddrs` are whitelisted — they are
 passive local interface-counter reads, the only "network" API allowed.
 
-**Git hooks (`.githooks/`, versioned).** Run `make hooks` once after cloning to set
-`core.hooksPath`. `pre-commit` runs `make test` (fast); `pre-push` runs `make check-net` (release
-build + zero-network scan). These make the gates blocking locally — there is no cloud CI.
+**Gates.** Server-side: `.github/workflows/ci.yml` runs `make verify` on `macos-15` for every push
+to `main` and every PR — the authoritative gate (can't be bypassed). Locally: `.githooks/` (run
+`make hooks` once after cloning to set `core.hooksPath`) — `pre-commit` runs `make test` (fast),
+`pre-push` runs `make check-net` (release build + zero-network scan). Local hooks are a convenience;
+CI is the source of truth.
 
 ## Architecture
 
