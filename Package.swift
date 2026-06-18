@@ -5,8 +5,19 @@ let package = Package(
     name: "MacOSState",
     platforms: [.macOS(.v14)],
     targets: [
+        // Shim C : prototypes des fonctions IOHID privées (capteurs thermiques
+        // Apple Silicon, non exposées dans les headers publics). Lecture seule.
+        .target(name: "CIOHID"),
+
         // Cœur pur, sans UI : échantillonnage système + logique testable.
-        .target(name: "SystemMetrics"),
+        .target(
+            name: "SystemMetrics",
+            dependencies: ["CIOHID"],
+            linkerSettings: [
+                .linkedFramework("IOKit"),
+                .linkedFramework("CoreFoundation"),
+            ]
+        ),
 
         // Exécutable AppKit/SwiftUI : HUD flottant sur le bureau.
         .executableTarget(

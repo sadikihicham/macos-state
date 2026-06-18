@@ -19,6 +19,7 @@ struct HUDView: View {
     @AppStorage("hud.show.disk") private var showDisk = true
     @AppStorage("hud.show.net") private var showNet = true
     @AppStorage("hud.show.battery") private var showBattery = true
+    @AppStorage("hud.show.thermal") private var showThermal = true
 
     private var s: MetricsSnapshot { engine.snapshot }
 
@@ -68,6 +69,7 @@ struct HUDView: View {
             }
             if showNet { networkRow }
             if showBattery, let b = s.battery { batteryRow(b) }
+            if showThermal, s.hasThermal { thermalRow }
 
             if expanded {
                 Divider().opacity(0.35)
@@ -202,6 +204,39 @@ struct HUDView: View {
             Text(b.minutesRemaining >= 0 ? Metrics.formatMinutes(b.minutesRemaining) : "—")
                 .font(.system(size: 10, design: .rounded)).monospacedDigit()
                 .foregroundStyle(.secondary)
+        }
+    }
+
+    private var thermalRow: some View {
+        HStack(spacing: 7) {
+            Image(systemName: "thermometer.medium").font(.system(size: 10))
+                .foregroundStyle(.secondary).frame(width: 13)
+            Text("Temp").font(.system(size: 10, weight: .medium))
+                .foregroundStyle(.secondary).frame(width: 34, alignment: .leading)
+            if let t = s.cpuTempC {
+                Text("\(Int(t.rounded()))°C")
+                    .font(.system(size: 10, weight: .semibold, design: .rounded)).monospacedDigit()
+                    .foregroundStyle(tempColor(t))
+            } else {
+                Text("N/A").font(.system(size: 10, design: .rounded)).foregroundStyle(.secondary)
+            }
+            Spacer(minLength: 4)
+            if s.fanCount > 0 {
+                Label(s.fanRPM.map { "\($0)" } ?? "—", systemImage: "fanblades")
+                    .font(.system(size: 10, design: .rounded)).monospacedDigit()
+                    .foregroundStyle(.secondary)
+            } else {
+                Text("vent. N/A").font(.system(size: 9)).foregroundStyle(.secondary)
+            }
+        }
+        .labelStyle(.titleAndIcon)
+    }
+
+    private func tempColor(_ c: Double) -> Color {
+        switch c {
+        case ..<65: return .green
+        case ..<85: return .yellow
+        default:    return .red
         }
     }
 

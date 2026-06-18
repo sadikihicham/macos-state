@@ -32,6 +32,11 @@ struct MetricsSnapshot {
     /// Preuve runtime de confidentialité : nb de sockets réseau ouverts par
     /// l'app (nil si illisible). 0 = aucune connexion, prouvé en direct.
     var openSockets: Int? = nil
+    // Thermique (best-effort) : nil → « N/A ».
+    var cpuTempC: Double? = nil
+    var fanRPM: Int? = nil
+    var fanCount: Int = 0
+    var hasThermal: Bool { cpuTempC != nil || fanCount > 0 }
 }
 
 /// Pilote les samplers via un Timer et publie un snapshot pour SwiftUI.
@@ -44,6 +49,7 @@ final class MetricsEngine: ObservableObject {
     private let disk = DiskSampler()
     private let net = NetworkSampler()
     private let battery = BatterySampler()
+    private let thermal = ThermalSampler()
     private let procLister = ProcessLister()
     private(set) lazy var processController = ProcessController(lister: procLister)
 
@@ -117,6 +123,10 @@ final class MetricsEngine: ObservableObject {
         s.interfaces = net.interfaceRates().map { InterfaceRate(id: $0.name, down: $0.down, up: $0.up) }
         s.battery = battery.read()
         s.openSockets = NetworkProof.openSocketCount()
+        let th = thermal.read()
+        s.cpuTempC = th.cpuTempC
+        s.fanRPM = th.fanRPM
+        s.fanCount = th.fanCount
         snapshot = s
 
         if processListingEnabled {

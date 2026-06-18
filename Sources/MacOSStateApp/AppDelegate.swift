@@ -68,7 +68,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // Sous-menu Métriques.
         let metricsItem = NSMenuItem(title: "Métriques", action: nil, keyEquivalent: "")
         let metricsMenu = NSMenu()
-        let labels = ["cpu": "CPU", "ram": "Mémoire", "disk": "Disque", "net": "Réseau", "battery": "Batterie"]
+        let labels = ["cpu": "CPU", "ram": "Mémoire", "disk": "Disque", "net": "Réseau",
+                      "battery": "Batterie", "thermal": "Thermique (temp. + ventilo)"]
         for key in Settings.metricKeys {
             let it = NSMenuItem(title: labels[key] ?? key, action: #selector(toggleMetric(_:)), keyEquivalent: "")
             it.target = self

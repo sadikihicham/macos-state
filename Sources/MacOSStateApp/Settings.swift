@@ -50,8 +50,8 @@ final class Settings {
         set { d.set(newValue, forKey: Key.floatOnTop) }
     }
 
-    // Visibilité par métrique (défaut : toutes visibles). Clés : cpu/ram/disk/net/battery.
-    static let metricKeys = ["cpu", "ram", "disk", "net", "battery"]
+    // Visibilité par métrique (défaut : toutes visibles).
+    static let metricKeys = ["cpu", "ram", "disk", "net", "battery", "thermal"]
     func isMetricVisible(_ key: String) -> Bool {
         let k = "hud.show.\(key)"
         return d.object(forKey: k) == nil ? true : d.bool(forKey: k)
