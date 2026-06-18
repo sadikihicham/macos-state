@@ -34,7 +34,7 @@ swift test --filter KillGuardTests
 swift test --filter SystemMetricsTests.KillGuardTests/testRefusesSystemBinary
 ```
 
-**`make verify` is the authoritative gate.** It runs the 32 unit tests AND
+**`make verify` is the authoritative gate.** It runs the unit tests AND
 `scripts/check-no-network.sh`, which scans the release binary's linked frameworks and undefined
 symbols and **fails** if any network capability is present (CFNetwork, Network.framework, `_socket`,
 `_connect`, `URLSession`, `NWConnection`, …). `getifaddrs`/`freeifaddrs` are whitelisted — they are

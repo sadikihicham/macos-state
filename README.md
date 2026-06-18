@@ -60,7 +60,7 @@ Sources/
     main · AppDelegate (menu bar + confirmations) · DesktopPanel (NSPanel bureau)
     MetricsEngine (timer → snapshot) · ProcessController (kill) · Settings · LaunchAtLogin
     Views/ (HUDView, Gauges, ExpandedDetails, ProcessListView)
-Tests/SystemMetricsTests/   # 32 tests : deltas, %, formats, KillGuard, ProcessLister
+Tests/SystemMetricsTests/   # 39 tests : deltas, %, formats, KillGuard, ProcessLister
 ```
 
 Toute la logique (calculs, décision de kill) vit dans `SystemMetrics` sous forme de
