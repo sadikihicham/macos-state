@@ -4,11 +4,15 @@ import SwiftUI
 final class AppDelegate: NSObject, NSApplicationDelegate {
     private let settings = Settings.shared
     private var panel: DesktopPanel?
+    private var engine: MetricsEngine?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
-        let host = NSHostingView(rootView: HUDView())
+        let engine = MetricsEngine(settings: settings)
+        let host = NSHostingView(rootView: HUDView(engine: engine))
         let panel = DesktopPanel(settings: settings)
         panel.present(content: host, menu: makeContextMenu())
+        engine.start()
+        self.engine = engine
         self.panel = panel
     }
 
