@@ -63,6 +63,12 @@ final class MetricsEngine: ObservableObject {
         return outcome
     }
 
+    /// Change l'intervalle de rafraîchissement et re-planifie le timer.
+    func setRefreshInterval(_ seconds: Double) {
+        settings.refreshInterval = seconds
+        scheduleTimer()
+    }
+
     func start() {
         tick()
         scheduleTimer()

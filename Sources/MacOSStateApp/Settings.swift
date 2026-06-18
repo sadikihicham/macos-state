@@ -45,9 +45,21 @@ final class Settings {
     }
 
     /// HUD au-dessus des fenêtres (true) ou posé sur le bureau (false).
-    /// V1 : true par défaut pour la visibilité ; option bureau en Slice 4.
     var floatOnTop: Bool {
         get { d.object(forKey: Key.floatOnTop) == nil ? true : d.bool(forKey: Key.floatOnTop) }
         set { d.set(newValue, forKey: Key.floatOnTop) }
     }
+
+    // Visibilité par métrique (défaut : toutes visibles). Clés : cpu/ram/disk/net/battery.
+    static let metricKeys = ["cpu", "ram", "disk", "net", "battery"]
+    func isMetricVisible(_ key: String) -> Bool {
+        let k = "hud.show.\(key)"
+        return d.object(forKey: k) == nil ? true : d.bool(forKey: k)
+    }
+    func setMetricVisible(_ key: String, _ on: Bool) {
+        d.set(on, forKey: "hud.show.\(key)")
+    }
+
+    /// Intervalles proposés dans le menu.
+    static let intervalChoices: [Double] = [1, 2, 5]
 }

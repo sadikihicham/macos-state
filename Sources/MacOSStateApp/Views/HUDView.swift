@@ -11,6 +11,12 @@ struct HUDView: View {
     var onKillRequest: (ProcSample) -> Void = { _ in }
 
     @AppStorage("hud.expanded") private var expanded = false
+    // Visibilité par métrique (synchronisée avec le menu via UserDefaults).
+    @AppStorage("hud.show.cpu") private var showCPU = true
+    @AppStorage("hud.show.ram") private var showRAM = true
+    @AppStorage("hud.show.disk") private var showDisk = true
+    @AppStorage("hud.show.net") private var showNet = true
+    @AppStorage("hud.show.battery") private var showBattery = true
 
     private var s: MetricsSnapshot { engine.snapshot }
 
@@ -19,15 +25,17 @@ struct HUDView: View {
             header
             Divider().opacity(0.35)
 
-            MetricRow(icon: "cpu", label: "CPU", value: s.cpu,
-                      trailing: percent(s.cpu))
-            MetricRow(icon: "memorychip", label: "RAM", value: s.memory,
-                      trailing: percent(s.memory))
-            MetricRow(icon: "internaldrive", label: "Disq", value: s.disk,
-                      trailing: percent(s.disk))
-
-            networkRow
-            if let b = s.battery { batteryRow(b) }
+            if showCPU {
+                MetricRow(icon: "cpu", label: "CPU", value: s.cpu, trailing: percent(s.cpu))
+            }
+            if showRAM {
+                MetricRow(icon: "memorychip", label: "RAM", value: s.memory, trailing: percent(s.memory))
+            }
+            if showDisk {
+                MetricRow(icon: "internaldrive", label: "Disq", value: s.disk, trailing: percent(s.disk))
+            }
+            if showNet { networkRow }
+            if showBattery, let b = s.battery { batteryRow(b) }
 
             if expanded {
                 ExpandedDetails(s: s)

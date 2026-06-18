@@ -17,7 +17,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             onResize: { [weak panel] size in panel?.resizeKeepingTopLeft(to: size) },
             onKillRequest: { [weak self] proc in self?.confirmKill(proc) }
         ))
-        panel.present(content: host, menu: makeContextMenu())
+        panel.present(content: host, menu: buildMenu())
         engine.start()
         setupStatusItem()
         self.engine = engine
@@ -35,8 +35,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             button.image = img
             button.toolTip = "macOS State"
         }
+        item.menu = buildMenu()
+        self.statusItem = item
+    }
 
+    /// Menu partagé (barre de menu + clic droit HUD). Deux instances distinctes.
+    private func buildMenu() -> NSMenu {
         let menu = NSMenu()
+
         let toggleHUD = NSMenuItem(title: "Masquer le HUD",
                                    action: #selector(toggleHUDVisibility(_:)), keyEquivalent: "")
         toggleHUD.target = self
@@ -47,11 +53,40 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         onTop.target = self
         menu.addItem(onTop)
 
+        // Sous-menu Intervalle.
+        let intervalItem = NSMenuItem(title: "Intervalle", action: nil, keyEquivalent: "")
+        let intervalMenu = NSMenu()
+        for v in Settings.intervalChoices {
+            let it = NSMenuItem(title: "\(Int(v)) s", action: #selector(setInterval(_:)), keyEquivalent: "")
+            it.target = self
+            it.representedObject = v
+            intervalMenu.addItem(it)
+        }
+        intervalItem.submenu = intervalMenu
+        menu.addItem(intervalItem)
+
+        // Sous-menu Métriques.
+        let metricsItem = NSMenuItem(title: "Métriques", action: nil, keyEquivalent: "")
+        let metricsMenu = NSMenu()
+        let labels = ["cpu": "CPU", "ram": "Mémoire", "disk": "Disque", "net": "Réseau", "battery": "Batterie"]
+        for key in Settings.metricKeys {
+            let it = NSMenuItem(title: labels[key] ?? key, action: #selector(toggleMetric(_:)), keyEquivalent: "")
+            it.target = self
+            it.representedObject = key
+            metricsMenu.addItem(it)
+        }
+        metricsItem.submenu = metricsMenu
+        menu.addItem(metricsItem)
+
+        let login = NSMenuItem(title: "Lancer au login",
+                               action: #selector(toggleLaunchAtLogin(_:)), keyEquivalent: "")
+        login.target = self
+        menu.addItem(login)
+
         menu.addItem(.separator())
         menu.addItem(NSMenuItem(title: "Quitter macOS State",
                                 action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q"))
-        item.menu = menu
-        self.statusItem = item
+        return menu
     }
 
     @objc private func toggleHUDVisibility(_ sender: NSMenuItem) {
@@ -59,12 +94,38 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         if panel.isVisible { panel.orderOut(nil) } else { panel.orderFrontRegardless() }
     }
 
+    @objc private func setInterval(_ sender: NSMenuItem) {
+        guard let v = sender.representedObject as? Double else { return }
+        engine?.setRefreshInterval(v)
+    }
+
+    @objc private func toggleMetric(_ sender: NSMenuItem) {
+        guard let key = sender.representedObject as? String else { return }
+        settings.setMetricVisible(key, !settings.isMetricVisible(key))
+    }
+
+    @objc private func toggleLaunchAtLogin(_ sender: NSMenuItem) {
+        LaunchAtLogin.set(!LaunchAtLogin.isEnabled)
+    }
+
     /// Met à jour dynamiquement titres/états des items de menu à l'ouverture.
     func validateMenuItem(_ menuItem: NSMenuItem) -> Bool {
-        if menuItem.action == #selector(toggleHUDVisibility(_:)) {
+        switch menuItem.action {
+        case #selector(toggleHUDVisibility(_:)):
             menuItem.title = (panel?.isVisible == true) ? "Masquer le HUD" : "Afficher le HUD"
-        } else if menuItem.action == #selector(toggleFloatOnTop(_:)) {
+        case #selector(toggleFloatOnTop(_:)):
             menuItem.state = settings.floatOnTop ? .on : .off
+        case #selector(setInterval(_:)):
+            let v = menuItem.representedObject as? Double
+            menuItem.state = (v == settings.refreshInterval) ? .on : .off
+        case #selector(toggleMetric(_:)):
+            if let key = menuItem.representedObject as? String {
+                menuItem.state = settings.isMetricVisible(key) ? .on : .off
+            }
+        case #selector(toggleLaunchAtLogin(_:)):
+            menuItem.state = LaunchAtLogin.isEnabled ? .on : .off
+        default:
+            break
         }
         return true
     }
@@ -125,25 +186,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows: Bool) -> Bool {
         panel?.orderFrontRegardless()
         return true
-    }
-
-    private func makeContextMenu() -> NSMenu {
-        let menu = NSMenu()
-        let onTop = NSMenuItem(
-            title: "Toujours au-dessus",
-            action: #selector(toggleFloatOnTop(_:)),
-            keyEquivalent: ""
-        )
-        onTop.target = self
-        onTop.state = settings.floatOnTop ? .on : .off
-        menu.addItem(onTop)
-        menu.addItem(.separator())
-
-        let quit = NSMenuItem(title: "Quitter macOS State",
-                              action: #selector(NSApplication.terminate(_:)),
-                              keyEquivalent: "q")
-        menu.addItem(quit)
-        return menu
     }
 
     @objc private func toggleFloatOnTop(_ sender: NSMenuItem) {

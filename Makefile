@@ -4,7 +4,7 @@ BUILD = .build
 APPDIR = $(BUILD)/$(APP).app
 AGENT_PLIST = $(HOME)/Library/LaunchAgents/com.hicham.macosstate.plist
 
-.PHONY: build release run test bundle install-agent uninstall-agent clean
+.PHONY: build release run test check-net verify bundle install-agent uninstall-agent clean
 
 build:
 	swift build
@@ -19,6 +19,14 @@ run: build
 ## Tests unitaires de la lib pure SystemMetrics.
 test:
 	swift test
+
+## Fitness function : prouve l'absence de toute capacité réseau dans le binaire.
+check-net: release
+	@bash scripts/check-no-network.sh "$(BUILD)/release/$(EXEC)"
+
+## Porte complète : build + tests + invariant zéro-réseau.
+verify: test check-net
+	@echo "==> verify OK (tests verts + zéro réseau)"
 
 ## Assemble un .app signé ad-hoc à partir du binaire release.
 bundle: release
