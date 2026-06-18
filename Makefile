@@ -50,6 +50,8 @@ bundle: release
 	mkdir -p "$(APPDIR)/Contents/MacOS"
 	cp "$(BUILD)/release/$(EXEC)" "$(APPDIR)/Contents/MacOS/$(EXEC)"
 	cp bundle/Info.plist "$(APPDIR)/Contents/Info.plist"
+	mkdir -p "$(APPDIR)/Contents/Resources"
+	cp bundle/AppIcon.icns "$(APPDIR)/Contents/Resources/AppIcon.icns"
 	codesign --force --sign - "$(APPDIR)"
 	@echo "==> $(APPDIR)"
 
@@ -61,6 +63,8 @@ bundle-universal:
 	mkdir -p "$(APPDIR)/Contents/MacOS"
 	cp "$$(swift build -c release $(ARCHS) --show-bin-path)/$(EXEC)" "$(APPDIR)/Contents/MacOS/$(EXEC)"
 	cp bundle/Info.plist "$(APPDIR)/Contents/Info.plist"
+	mkdir -p "$(APPDIR)/Contents/Resources"
+	cp bundle/AppIcon.icns "$(APPDIR)/Contents/Resources/AppIcon.icns"
 	codesign --force --sign - "$(APPDIR)"
 	@echo "==> $(APPDIR) (universel)"
 
@@ -100,6 +104,8 @@ notarize:
 	mkdir -p "$(APPDIR)/Contents/MacOS"
 	cp "$$(swift build -c release $(ARCHS) --show-bin-path)/$(EXEC)" "$(APPDIR)/Contents/MacOS/$(EXEC)"
 	cp bundle/Info.plist "$(APPDIR)/Contents/Info.plist"
+	mkdir -p "$(APPDIR)/Contents/Resources"
+	cp bundle/AppIcon.icns "$(APPDIR)/Contents/Resources/AppIcon.icns"
 	# Signature Developer ID + hardened runtime + timestamp sécurisé (exigés pour notariser).
 	codesign --force --options runtime --timestamp --sign "$(DEV_ID)" "$(APPDIR)"
 	rm -f "$(DMGFILE)"
