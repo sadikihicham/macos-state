@@ -75,4 +75,12 @@ final class Settings {
         get { d.bool(forKey: "alerts.enabled") }
         set { d.set(newValue, forKey: "alerts.enabled") }
     }
+
+    /// Facteur d'agrandissement du HUD (texte + jauges). 1.0 par défaut.
+    var uiScale: Double {
+        get { let v = d.double(forKey: "hud.scale"); return v > 0 ? v : 1.0 }
+        set { d.set(newValue, forKey: "hud.scale") }
+    }
+    /// Tailles proposées : Normal / Grand / Très grand.
+    static let scaleChoices: [Double] = [1.0, 1.25, 1.5]
 }

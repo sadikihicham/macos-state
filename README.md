@@ -24,6 +24,7 @@ Native **Swift + SwiftUI/AppKit**. 100% local, **no network access** (enforced b
 - **History sparklines** (CPU / RAM / temperature trends over the last ~3 min) in expanded mode — fully local.
 - **Menu-bar live readout**: a chosen metric (CPU / RAM / temperature) next to the icon with a mini-sparkline — glanceable, fully local.
 - **Threshold alerts**: optional local notification when CPU / temperature / disk crosses a threshold (edge-triggered, with hysteresis) — local, no network.
+- **Adjustable text size** (Normal / Large / Very large) for readability — Menu → Text size.
 - **Trilingual UI** (FR / EN / AR) with an in-app language menu, live switching, and RTL for Arabic.
 
 ## Security model

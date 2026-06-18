@@ -26,6 +26,7 @@ Natif **Swift + SwiftUI/AppKit**. 100 % local, **aucun accès réseau** (garanti
 - **Sparklines d'historique** (tendances CPU / RAM / température sur les ~3 dernières min) en mode développé — 100% local.
 - **Lecture live en barre de menu** : métrique au choix (CPU / RAM / température) à côté de l'icône avec une mini-sparkline — d'un coup d'œil, 100% local.
 - **Alertes de seuil** : notification locale optionnelle quand CPU / température / disque dépasse un seuil (front montant, hystérésis) — locale, sans réseau.
+- **Taille du texte réglable** (Normal / Grand / Très grand) pour la lisibilité — Menu → Taille du texte.
 - **Interface trilingue** (FR / EN / AR) : menu Langue intégré, bascule en direct, RTL pour l'arabe.
 
 ## Sécurité (modèle)

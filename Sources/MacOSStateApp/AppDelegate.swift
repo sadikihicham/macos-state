@@ -199,6 +199,20 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         alerts.target = self
         menu.addItem(alerts)
 
+        // Sous-menu Taille du texte (agrandit le HUD pour la lisibilité).
+        let sizeItem = NSMenuItem(title: t("Taille du texte"), action: nil, keyEquivalent: "")
+        let sizeMenu = NSMenu()
+        let sizeLabels: [Double: String] = [1.0: "Normal", 1.25: "Grand", 1.5: "Très grand"]
+        for sc in Settings.scaleChoices {
+            let it = NSMenuItem(title: t(sizeLabels[sc] ?? "\(sc)"),
+                                action: #selector(setScale(_:)), keyEquivalent: "")
+            it.target = self
+            it.representedObject = sc
+            sizeMenu.addItem(it)
+        }
+        sizeItem.submenu = sizeMenu
+        menu.addItem(sizeItem)
+
         let login = NSMenuItem(title: t("Lancer au login"),
                                action: #selector(toggleLaunchAtLogin(_:)), keyEquivalent: "")
         login.target = self
@@ -209,6 +223,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                                 action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q"))
         menu.userInterfaceLayoutDirection = L.isRTL(L.lang) ? .rightToLeft : .leftToRight
         return menu
+    }
+
+    @objc private func setScale(_ sender: NSMenuItem) {
+        guard let sc = sender.representedObject as? Double else { return }
+        settings.uiScale = sc   // le HUD SwiftUI suit via @AppStorage("hud.scale")
     }
 
     @objc private func toggleAlerts(_ sender: NSMenuItem) {
@@ -265,6 +284,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             menuItem.state = (menuItem.representedObject as? String == settings.menubarMetric) ? .on : .off
         case #selector(toggleAlerts(_:)):
             menuItem.state = settings.alertsEnabled ? .on : .off
+        case #selector(setScale(_:)):
+            menuItem.state = (menuItem.representedObject as? Double == settings.uiScale) ? .on : .off
         case #selector(toggleFloatOnTop(_:)):
             menuItem.state = settings.floatOnTop ? .on : .off
         case #selector(setInterval(_:)):

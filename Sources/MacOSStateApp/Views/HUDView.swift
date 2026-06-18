@@ -21,6 +21,8 @@ struct HUDView: View {
     @AppStorage("hud.show.battery") private var showBattery = true
     @AppStorage("hud.show.thermal") private var showThermal = true
     @AppStorage("app.lang") private var lang = "fr"
+    @AppStorage("hud.scale") private var scale: Double = 1.0
+    @State private var natural: CGSize = .zero
 
     /// Traduit selon la langue courante (le `lang` observé déclenche le re-rendu).
     private func tr(_ s: String) -> String { L.t(s, lang) }
@@ -33,10 +35,22 @@ struct HUDView: View {
         }
         .environment(\.locale, Locale(identifier: lang))
         .environment(\.layoutDirection, L.isRTL(lang) ? .rightToLeft : .leftToRight)
-        .onGeometryChange(for: CGSize.self) { $0.size } action: { onResize($0) }
+        // Mesure la taille naturelle (avant échelle), puis agrandit le contenu et
+        // dimensionne le footprint à taille×échelle pour que le panneau suive.
+        .onGeometryChange(for: CGSize.self) { $0.size } action: { natural = $0; reportSize() }
+        .scaleEffect(CGFloat(scale), anchor: .topLeading)
+        .frame(width: natural.width > 0 ? natural.width * CGFloat(scale) : nil,
+               height: natural.height > 0 ? natural.height * CGFloat(scale) : nil,
+               alignment: .topLeading)
+        .onChange(of: scale) { _, _ in reportSize() }
         .onAppear { syncProcessListing() }
         .onChange(of: expanded) { _, _ in syncProcessListing() }
         .onChange(of: minimized) { _, _ in syncProcessListing() }
+    }
+
+    private func reportSize() {
+        guard natural.width > 0, natural.height > 0 else { return }
+        onResize(CGSize(width: natural.width * CGFloat(scale), height: natural.height * CGFloat(scale)))
     }
 
     /// La liste des process n'est utile qu'en mode développé ET non minimisé.
