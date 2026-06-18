@@ -23,7 +23,8 @@ make verify          # test + check-net — THE FULL GATE (run before committing
 make check-net       # fitness function: proves the binary has zero network capability
 make hooks           # activer les git hooks versionnés (.githooks) — une fois après clone
 make release         # swift build -c release
-make bundle          # assemble + ad-hoc codesign .build/MacOSState.app
+make bundle          # assemble + ad-hoc codesign .build/MacOSState.app (arch hôte)
+make dmg             # .dmg distribuable : .app UNIVERSEL (arm64+x86_64), ad-hoc, lien /Applications
 make install-agent   # install LaunchAgent (~/Library/LaunchAgents/com.hicham.macosstate.plist)
 make clean
 ```

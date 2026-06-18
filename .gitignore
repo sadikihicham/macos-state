@@ -10,6 +10,7 @@ DerivedData/
 
 # Bundled app artifacts
 *.app/
+*.dmg
 
 # macOS
 .DS_Store

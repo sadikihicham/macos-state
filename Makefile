@@ -4,7 +4,10 @@ BUILD = .build
 APPDIR = $(BUILD)/$(APP).app
 AGENT_PLIST = $(HOME)/Library/LaunchAgents/com.hicham.macosstate.plist
 
-.PHONY: build release run test check-net verify hooks bundle install-agent uninstall-agent clean
+.PHONY: build release run test check-net verify hooks bundle bundle-universal dmg install-agent uninstall-agent clean
+
+ARCHS   = --arch arm64 --arch x86_64
+DMGFILE = $(BUILD)/$(APP).dmg
 
 build:
 	swift build
@@ -43,6 +46,31 @@ bundle: release
 	cp bundle/Info.plist "$(APPDIR)/Contents/Info.plist"
 	codesign --force --sign - "$(APPDIR)"
 	@echo "==> $(APPDIR)"
+
+## Assemble un .app UNIVERSEL (arm64 + x86_64) signé ad-hoc — pour distribuer
+## sur une autre machine (Apple Silicon comme Intel).
+bundle-universal:
+	swift build -c release $(ARCHS)
+	rm -rf "$(APPDIR)"
+	mkdir -p "$(APPDIR)/Contents/MacOS"
+	cp "$$(swift build -c release $(ARCHS) --show-bin-path)/$(EXEC)" "$(APPDIR)/Contents/MacOS/$(EXEC)"
+	cp bundle/Info.plist "$(APPDIR)/Contents/Info.plist"
+	codesign --force --sign - "$(APPDIR)"
+	@echo "==> $(APPDIR) (universel)"
+
+## Crée un .dmg distribuable : app universelle + lien /Applications (glisser-déposer).
+## NB : signé ad-hoc seulement (pas notarisé) → Gatekeeper bloquera au 1er lancement
+## sur l'autre Mac ; contournement : clic droit → Ouvrir, ou
+## xattr -dr com.apple.quarantine "/Applications/MacOSState.app".
+dmg: bundle-universal
+	rm -f "$(DMGFILE)"
+	rm -rf "$(BUILD)/dmgroot"
+	mkdir -p "$(BUILD)/dmgroot"
+	cp -R "$(APPDIR)" "$(BUILD)/dmgroot/"
+	ln -s /Applications "$(BUILD)/dmgroot/Applications"
+	hdiutil create -volname "$(APP)" -srcfolder "$(BUILD)/dmgroot" -ov -format UDZO "$(DMGFILE)"
+	rm -rf "$(BUILD)/dmgroot"
+	@echo "==> $(DMGFILE)"
 
 ## Installe un LaunchAgent qui démarre l'app au login (usage perso).
 install-agent: bundle
