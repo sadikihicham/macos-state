@@ -1,76 +1,92 @@
 # macOS State
 
-Moniteur système macOS affiché en **HUD flottant sur le bureau** (façon Activity Monitor,
-mais discret et toujours visible). CPU · Mémoire · Disque · Batterie · Réseau, en taux
-d'utilisation, avec un **mode réduit** (jauges) ⇄ **mode développé** (détails + liste des
-process actifs avec possibilité de **tuer** un process/app).
+[![CI](https://github.com/sadikihicham/macos-state/actions/workflows/ci.yml/badge.svg)](https://github.com/sadikihicham/macos-state/actions/workflows/ci.yml)
 
-Natif **Swift + SwiftUI/AppKit**. 100 % local, **aucun accès réseau** (garanti par un test).
+**English** · [Français](README.fr.md) · [العربية](README.ar.md)
 
-## Fonctionnalités
+macOS system monitor shown as a **floating desktop HUD** (like Activity Monitor, but discreet
+and always visible). CPU · Memory · Disk · Battery · Network as utilization rates, with a
+**collapsed mode** (gauges) ⇄ **expanded mode** (details + live process list, with the ability
+to **kill** a process/app).
 
-- **HUD bureau** translucide, déplaçable, position mémorisée ; réduit ⇄ développé.
-- **Métriques** : CPU (+ par cœur), Mémoire (active/câblée/compressée/libre), Disque
-  (utilisé/libre/total), Batterie (%, charge, temps restant, **cycles + santé**), Réseau
-  (débit ↓/↑ global + **par interface**).
-- **Process** (mode développé) : top consommateurs CPU, mémoire, icône, **bouton Tuer**
-  avec confirmation.
-- **Icône barre de menu** (à côté de l'horloge) : Afficher/Masquer le HUD, Toujours
-  au-dessus, Intervalle, Métriques, Lancer au login, Quitter.
-- **Réglages** : intervalle de rafraîchissement (1/2/5 s), métriques affichées, lancement
-  au login.
+Native **Swift + SwiftUI/AppKit**. 100% local, **no network access** (enforced by a test).
 
-## Sécurité (modèle)
+## Features
 
-- **Zéro réseau** : moniteur strictement local. Vérifié par `make check-net` (échoue si un
-  framework/symbole réseau sortant est lié).
-- **Kill borné et gardé** (`KillGuard`, fonction pure testée) :
-  - uniquement les process de **l'utilisateur courant** (`uid == getuid()`), pas d'élévation ;
-  - **refus** des PID réservés (≤1), du moniteur lui-même, des **binaires système**
-    (chemin sous `/System`, `/usr/libexec`, `/usr/sbin`…), d'une **blacklist** de daemons
-    critiques (launchd, WindowServer, loginwindow, cfprefsd, tccd, coreaudiod…) ;
-  - **fail-closed** : identité illisible → refus ;
-  - **anti-réutilisation de PID** : identité (uid + start time **µs**) re-validée juste
-    avant de frapper, et avant l'escalade `SIGKILL` ;
-  - **confirmation humaine** obligatoire (NSAlert) ; `SIGTERM` puis `SIGKILL` après délai.
-- **Non-sandboxé** (le kill de process est incompatible avec l'App Sandbox), entitlements
-  minimaux, aucun secret, aucune écriture hors `UserDefaults`.
+- **Desktop HUD**: translucent, draggable, remembers its position; collapsed ⇄ expanded.
+- **Metrics**: CPU (+ per core), Memory (active/wired/compressed/free), Disk (used/free/total),
+  Battery (%, charge, time left, **cycles + health**), Network (↓/↑ throughput, global +
+  **per interface**).
+- **Processes** (expanded mode): top CPU/memory consumers, icon, **Kill button** with confirmation.
+- **Menu-bar icon** (next to the clock): Show/Hide HUD, Always on top, Interval, Metrics,
+  Launch at login, Quit.
+- **Settings**: refresh interval (1/2/5 s), displayed metrics, launch at login.
 
-## Build & exécution
+## Security model
 
-Prérequis : macOS 14+, Xcode/Swift 6.
+- **Zero network**: strictly local monitor. Enforced by `make check-net` (fails if any outbound
+  network framework/symbol is linked).
+- **Bounded, guarded kill** (`KillGuard`, a pure tested function):
+  - only the **current user's** processes (`uid == getuid()`), no privilege escalation;
+  - **refuses** reserved PIDs (≤1), the monitor itself, **system binaries** (path under
+    `/System`, `/usr/libexec`, `/usr/sbin`…), and a **blacklist** of critical daemons
+    (launchd, WindowServer, loginwindow, cfprefsd, tccd, coreaudiod…);
+  - **fail-closed**: unreadable identity → refusal;
+  - **PID-reuse protection**: identity (uid + start time in **µs**) re-validated right before
+    striking and before the `SIGKILL` escalation;
+  - mandatory **human confirmation** (NSAlert); `SIGTERM` then `SIGKILL` after a delay.
+- **Non-sandboxed** (killing processes is incompatible with the App Sandbox), minimal
+  entitlements, no secrets, no writes outside `UserDefaults`.
+
+## Build & run
+
+Requirements: macOS 14+, Xcode/Swift 6.
 
 ```bash
-make run            # build + lance le HUD (dev)
-make test           # tests unitaires (lib pure SystemMetrics)
-make check-net      # fitness function : prouve l'absence de réseau
-make verify         # test + check-net (porte complète)
-make bundle         # .app signé ad-hoc (.build/MacOSState.app)
-make install-agent  # LaunchAgent : démarre au login (usage perso)
+make run            # build + launch the HUD (dev)
+make test           # unit tests (pure SystemMetrics lib)
+make accuracy       # accuracy eval: samplers vs system sources (sysctl/vm_stat/df/pmset/ifconfig)
+make check-net      # fitness function: proves there is no network capability
+make verify         # test + check-net (full gate)
+make hooks          # enable the versioned git hooks (run once after cloning)
 ```
+
+## Distribution
+
+```bash
+make dmg            # distributable .dmg: UNIVERSAL app (arm64 + x86_64), ad-hoc signed
+make notarize       # Developer ID signed + notarized .dmg (no Gatekeeper warning; needs an
+                    #   Apple Developer account — reads DEV_ID and NOTARY_PROFILE from the env)
+make bundle         # ad-hoc signed .app (.build/MacOSState.app)
+make install-agent  # LaunchAgent: start at login (personal use)
+```
+
+The `make dmg` output is **ad-hoc signed** (not notarized): on another Mac, first launch is
+blocked by Gatekeeper. Bypass: right-click the app → **Open** → Open, or
+`xattr -dr com.apple.quarantine "/Applications/MacOSState.app"`. For warning-free distribution,
+use `make notarize` (Apple Developer account required).
 
 ## Architecture
 
 ```
 Sources/
-  SystemMetrics/      # cœur PUR & testable (sans UI)
+  SystemMetrics/      # PURE & testable core (no UI)
     CPUSampler · MemorySampler · DiskSampler · BatterySampler · NetworkSampler
-    ProcessLister · KillGuard · Models (fonctions pures)
+    ProcessLister · KillGuard · Models (pure functions)
   MacOSStateApp/      # AppKit + SwiftUI
-    main · AppDelegate (menu bar + confirmations) · DesktopPanel (NSPanel bureau)
+    main · AppDelegate (menu bar + confirmations) · DesktopPanel (desktop NSPanel)
     MetricsEngine (timer → snapshot) · ProcessController (kill) · Settings · LaunchAtLogin
     Views/ (HUDView, Gauges, ExpandedDetails, ProcessListView)
-Tests/SystemMetricsTests/   # 39 tests : deltas, %, formats, KillGuard, ProcessLister
+Tests/SystemMetricsTests/   # deltas, %, formats, KillGuard, ProcessLister, accuracy
 ```
 
-Toute la logique (calculs, décision de kill) vit dans `SystemMetrics` sous forme de
-**fonctions pures** → testables sans matériel. Les accès système (mach/IOKit/libproc) sont
-isolés dans les `*Sampler`.
+All logic (computations, kill decision) lives in `SystemMetrics` as **pure functions** →
+testable without hardware. System access (mach/IOKit/libproc) is isolated in the `*Sampler`s.
 
-## Vérification end-to-end
+## End-to-end verification
 
-1. `make verify` → tests verts + zéro réseau.
-2. `make run` → comparer CPU/RAM/Disque/Batterie/Réseau à **Activity Monitor**.
-3. Mode réduit ⇄ développé ; position/état persistés après relance.
-4. Kill sûr : `sleep 1000 &` → le repérer → Tuer → disparaît ; un process système
-   (ex. `WindowServer`) est **non tuable** (bouton grisé / refus `KillGuard`).
+1. `make verify` → green tests + zero network.
+2. `make run` → compare CPU/RAM/Disk/Battery/Network against **Activity Monitor**.
+3. Collapsed ⇄ expanded; position/state persisted across relaunch.
+4. Safe kill: `sleep 1000 &` → find it → Kill → it disappears; a system process
+   (e.g. `WindowServer`) is **not killable** (button disabled / `KillGuard` refusal).
