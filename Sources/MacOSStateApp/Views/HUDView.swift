@@ -68,6 +68,7 @@ struct HUDView: View {
                 .foregroundStyle(.secondary)
             Text("macOS State")
                 .font(.system(size: 12, weight: .semibold, design: .rounded))
+            localSeal
             Spacer()
             Button {
                 expanded.toggle()
@@ -79,6 +80,21 @@ struct HUDView: View {
             .buttonStyle(.plain)
             .help(expanded ? "Réduire" : "Détails")
         }
+    }
+
+    /// Sceau différenciateur : l'app est 100% locale, sans aucune capacité réseau.
+    /// Adossé à l'invariant vérifié en CI (`make check-net`) — une garantie qu'un
+    /// moniteur qui « téléphone dehors » ne peut pas afficher honnêtement.
+    private var localSeal: some View {
+        HStack(spacing: 2) {
+            Image(systemName: "lock.shield.fill").font(.system(size: 8))
+            Text("Local").font(.system(size: 8, weight: .bold, design: .rounded))
+        }
+        .foregroundStyle(.green)
+        .padding(.horizontal, 4).padding(.vertical, 1)
+        .background(.green.opacity(0.14), in: Capsule())
+        .help("100% local — aucune capacité réseau (invariant vérifié en CI : make check-net).")
+        .accessibilityLabel("Application 100% locale, sans accès réseau")
     }
 
     private var networkRow: some View {
