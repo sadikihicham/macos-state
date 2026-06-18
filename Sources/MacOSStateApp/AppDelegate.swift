@@ -2,6 +2,7 @@ import AppKit
 import Combine
 import SwiftUI
 import SystemMetrics
+import UserNotifications
 
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate {
@@ -25,11 +26,45 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         self.engine = engine
         self.panel = panel
 
-        // Lecture live en barre de menu : suit chaque snapshot publié.
+        // Lecture barre de menu + alertes de seuil : suivent chaque snapshot publié.
         engine.$snapshot
             .receive(on: RunLoop.main)
-            .sink { [weak self] s in self?.updateStatusReadout(s) }
+            .sink { [weak self] s in
+                self?.updateStatusReadout(s)
+                self?.evaluateAlerts(s)
+            }
             .store(in: &cancellables)
+        if settings.alertsEnabled { requestNotificationAuth() }
+    }
+
+    // MARK: - Alertes de seuil (notification locale)
+
+    private var alertsOver: Set<SystemAlert> = []
+
+    private func requestNotificationAuth() {
+        UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound]) { _, _ in }
+    }
+
+    private func evaluateAlerts(_ s: MetricsSnapshot) {
+        guard settings.alertsEnabled else { alertsOver = []; return }
+        let r = AlertEvaluator.evaluate(cpu: s.cpu, tempC: s.cpuTempC, disk: s.disk,
+                                        thresholds: .defaults, previouslyOver: alertsOver)
+        alertsOver = r.over
+        for a in r.fired { postAlert(a, s) }
+    }
+
+    private func postAlert(_ a: SystemAlert, _ s: MetricsSnapshot) {
+        let title: String, value: String
+        switch a {
+        case .cpu:         title = t("Alerte CPU");         value = "\(Int((s.cpu * 100).rounded()))%"
+        case .temperature: title = t("Alerte température"); value = "\(Int((s.cpuTempC ?? 0).rounded()))°C"
+        case .disk:        title = t("Alerte disque");      value = "\(Int((s.disk * 100).rounded()))%"
+        }
+        let content = UNMutableNotificationContent()
+        content.title = title
+        content.body = t("Seuil dépassé") + " : " + value
+        UNUserNotificationCenter.current().add(
+            UNNotificationRequest(identifier: "alert.\(a.rawValue)", content: content, trigger: nil))
     }
 
     // MARK: - Icône barre de menu (à côté de l'horloge)
@@ -159,6 +194,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         mbItem.submenu = mbMenu
         menu.addItem(mbItem)
 
+        let alerts = NSMenuItem(title: t("Alertes de seuil"),
+                                action: #selector(toggleAlerts(_:)), keyEquivalent: "")
+        alerts.target = self
+        menu.addItem(alerts)
+
         let login = NSMenuItem(title: t("Lancer au login"),
                                action: #selector(toggleLaunchAtLogin(_:)), keyEquivalent: "")
         login.target = self
@@ -169,6 +209,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                                 action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q"))
         menu.userInterfaceLayoutDirection = L.isRTL(L.lang) ? .rightToLeft : .leftToRight
         return menu
+    }
+
+    @objc private func toggleAlerts(_ sender: NSMenuItem) {
+        settings.alertsEnabled.toggle()
+        alertsOver = []
+        if settings.alertsEnabled { requestNotificationAuth() }
     }
 
     @objc private func setMenubarMetric(_ sender: NSMenuItem) {
@@ -217,6 +263,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             menuItem.state = (menuItem.representedObject as? String == L.lang) ? .on : .off
         case #selector(setMenubarMetric(_:)):
             menuItem.state = (menuItem.representedObject as? String == settings.menubarMetric) ? .on : .off
+        case #selector(toggleAlerts(_:)):
+            menuItem.state = settings.alertsEnabled ? .on : .off
         case #selector(toggleFloatOnTop(_:)):
             menuItem.state = settings.floatOnTop ? .on : .off
         case #selector(setInterval(_:)):

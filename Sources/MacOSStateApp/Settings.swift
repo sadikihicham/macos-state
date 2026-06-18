@@ -69,4 +69,10 @@ final class Settings {
         set { d.set(newValue, forKey: "menubar.metric") }
     }
     static let menubarChoices = ["off", "cpu", "ram", "temp"]
+
+    /// Alertes de seuil (notification locale). Désactivées par défaut.
+    var alertsEnabled: Bool {
+        get { d.bool(forKey: "alerts.enabled") }
+        set { d.set(newValue, forKey: "alerts.enabled") }
+    }
 }
