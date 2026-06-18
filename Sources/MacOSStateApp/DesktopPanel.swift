@@ -41,7 +41,9 @@ final class DesktopPanel: NSPanel {
         if let moveObserver { NotificationCenter.default.removeObserver(moveObserver) }
     }
 
-    override var canBecomeKey: Bool { false }
+    // Devient key pour rendre les contrôles (bouton "Tuer", confirmation)
+    // cliquables, mais reste non-activant : ne change pas d'espace ni d'app au premier plan.
+    override var canBecomeKey: Bool { true }
     override var canBecomeMain: Bool { false }
 
     /// Redimensionne en gardant le bord supérieur-gauche fixe (HUD ancré en haut).

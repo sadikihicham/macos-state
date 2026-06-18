@@ -7,6 +7,8 @@ struct HUDView: View {
     @ObservedObject var engine: MetricsEngine
     /// Notifie l'hôte AppKit de la taille idéale pour redimensionner le panneau.
     var onResize: (CGSize) -> Void = { _ in }
+    /// Demande de kill remontée à l'hôte AppKit (qui affiche la confirmation).
+    var onKillRequest: (ProcSample) -> Void = { _ in }
 
     @AppStorage("hud.expanded") private var expanded = false
 
@@ -27,7 +29,17 @@ struct HUDView: View {
             networkRow
             if let b = s.battery { batteryRow(b) }
 
-            if expanded { ExpandedDetails(s: s) }
+            if expanded {
+                ExpandedDetails(s: s)
+                if !engine.processes.isEmpty {
+                    Divider().opacity(0.35)
+                    ProcessListView(
+                        processes: engine.processes,
+                        decide: { engine.processController.decide($0) },
+                        onKill: onKillRequest
+                    )
+                }
+            }
         }
         .padding(12)
         .frame(width: 232, alignment: .topLeading)
@@ -38,6 +50,8 @@ struct HUDView: View {
         )
         .fixedSize()
         .onGeometryChange(for: CGSize.self) { $0.size } action: { onResize($0) }
+        .onAppear { engine.processListingEnabled = expanded }
+        .onChange(of: expanded) { _, now in engine.processListingEnabled = now }
     }
 
     private var header: some View {

@@ -41,11 +41,27 @@ final class MetricsEngine: ObservableObject {
     private let disk = DiskSampler()
     private let net = NetworkSampler()
     private let battery = BatterySampler()
+    private let procLister = ProcessLister()
+    private(set) lazy var processController = ProcessController(lister: procLister)
+
+    /// Liste des process (uniquement peuplée quand le mode développé l'active).
+    @Published private(set) var processes: [ProcSample] = []
+    var processListingEnabled = false {
+        didSet { if !processListingEnabled { processes = [] } }
+    }
+    /// Nombre max de process affichés (les plus gourmands en CPU).
+    private let maxProcesses = 12
 
     private let settings: Settings
     private var timer: Timer?
 
     init(settings: Settings) { self.settings = settings }
+
+    func performKill(_ p: ProcSample) -> KillOutcome {
+        let outcome = processController.perform(p)
+        tick()                          // rafraîchit la liste tout de suite
+        return outcome
+    }
 
     func start() {
         tick()
@@ -92,5 +108,13 @@ final class MetricsEngine: ObservableObject {
         s.interfaces = net.interfaceRates().map { InterfaceRate(id: $0.name, down: $0.down, up: $0.up) }
         s.battery = battery.read()
         snapshot = s
+
+        if processListingEnabled {
+            processes = Array(
+                procLister.list()
+                    .sorted { $0.cpuPercent > $1.cpuPercent }
+                    .prefix(maxProcesses)
+            )
+        }
     }
 }
