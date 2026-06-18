@@ -4,7 +4,7 @@ BUILD = .build
 APPDIR = $(BUILD)/$(APP).app
 AGENT_PLIST = $(HOME)/Library/LaunchAgents/com.hicham.macosstate.plist
 
-.PHONY: build release run test check-net verify hooks bundle bundle-universal dmg install-agent uninstall-agent clean
+.PHONY: build release run test check-net verify accuracy hooks bundle bundle-universal dmg install-agent uninstall-agent clean
 
 ARCHS   = --arch arm64 --arch x86_64
 DMGFILE = $(BUILD)/$(APP).dmg
@@ -30,6 +30,12 @@ check-net: release
 ## Porte complète : build + tests + invariant zéro-réseau.
 verify: test check-net
 	@echo "==> verify OK (tests verts + zéro réseau)"
+
+## Eval d'exactitude (sous-ensemble) : croise les samplers avec des sources
+## système indépendantes (sysctl, vm_stat, df, pmset, ifconfig). Ces tests
+## tournent AUSSI dans `make test` ; cette cible les isole pour diagnostic.
+accuracy:
+	swift test --filter AccuracyCrossSource
 
 ## Active les git hooks versionnés (.githooks) : test au commit, check-net au push.
 ## À lancer une fois après un clone.

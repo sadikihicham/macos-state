@@ -21,6 +21,7 @@ make run             # build + launch the HUD (dev)
 make test            # swift test — unit tests on the pure SystemMetrics lib
 make verify          # test + check-net — THE FULL GATE (run before committing)
 make check-net       # fitness function: proves the binary has zero network capability
+make accuracy        # eval d'exactitude : samplers vs sources système (sysctl/vm_stat/df/pmset/ifconfig)
 make hooks           # activer les git hooks versionnés (.githooks) — une fois après clone
 make release         # swift build -c release
 make bundle          # assemble + ad-hoc codesign .build/MacOSState.app (arch hôte)
