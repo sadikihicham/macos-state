@@ -11,6 +11,8 @@ struct HUDView: View {
     var onKillRequest: (ProcSample) -> Void = { _ in }
 
     @AppStorage("hud.expanded") private var expanded = false
+    // Réduit tout le HUD en une simple pastille ; clic dessus → restaure.
+    @AppStorage("hud.minimized") private var minimized = false
     // Visibilité par métrique (synchronisée avec le menu via UserDefaults).
     @AppStorage("hud.show.cpu") private var showCPU = true
     @AppStorage("hud.show.ram") private var showRAM = true
@@ -21,6 +23,36 @@ struct HUDView: View {
     private var s: MetricsSnapshot { engine.snapshot }
 
     var body: some View {
+        Group {
+            if minimized { puck } else { fullHUD }
+        }
+        .onGeometryChange(for: CGSize.self) { $0.size } action: { onResize($0) }
+        .onAppear { syncProcessListing() }
+        .onChange(of: expanded) { _, _ in syncProcessListing() }
+        .onChange(of: minimized) { _, _ in syncProcessListing() }
+    }
+
+    /// La liste des process n'est utile qu'en mode développé ET non minimisé.
+    private func syncProcessListing() {
+        engine.processListingEnabled = expanded && !minimized
+    }
+
+    /// Pastille compacte affichée quand le HUD est minimisé. Tap → restaure
+    /// (geste, pas Button, pour rester déplaçable via le fond de fenêtre).
+    private var puck: some View {
+        Image(systemName: "gauge.with.dots.needle.50percent")
+            .font(.system(size: 18, weight: .semibold))
+            .foregroundStyle(.primary)
+            .frame(width: 38, height: 38)
+            .background(.ultraThinMaterial, in: Circle())
+            .overlay(Circle().strokeBorder(.white.opacity(0.12), lineWidth: 1))
+            .contentShape(Circle())
+            .onTapGesture { minimized = false }
+            .help("Afficher le HUD")
+            .fixedSize()
+    }
+
+    private var fullHUD: some View {
         VStack(alignment: .leading, spacing: 7) {
             header
             Divider().opacity(0.35)
@@ -59,9 +91,6 @@ struct HUDView: View {
                 .strokeBorder(.white.opacity(0.12), lineWidth: 1)
         )
         .fixedSize()
-        .onGeometryChange(for: CGSize.self) { $0.size } action: { onResize($0) }
-        .onAppear { engine.processListingEnabled = expanded }
-        .onChange(of: expanded) { _, now in engine.processListingEnabled = now }
     }
 
     private var header: some View {
@@ -81,6 +110,16 @@ struct HUDView: View {
             }
             .buttonStyle(.plain)
             .help(expanded ? "Réduire" : "Détails")
+
+            Button {
+                minimized = true
+            } label: {
+                Image(systemName: "minus.circle")
+                    .font(.system(size: 10, weight: .bold))
+                    .foregroundStyle(.secondary)
+            }
+            .buttonStyle(.plain)
+            .help("Réduire en pastille")
         }
     }
 
