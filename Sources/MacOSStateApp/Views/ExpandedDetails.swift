@@ -10,11 +10,30 @@ struct ExpandedDetails: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 9) {
             Divider().opacity(0.35)
+            if s.cpuHistory.count > 1 { trends }
             cpuCores
             memoryBreakdown
             diskDetail
             if !s.interfaces.isEmpty { networkDetail }
             if let b = s.battery { batteryDetail(b) }
+        }
+    }
+
+    // MARK: Tendances (sparklines d'historique)
+    private var trends: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            sectionTitle(tr("Tendances"))
+            trendRow(tr("CPU"), s.cpuHistory, .green)
+            trendRow(tr("Mémoire"), s.ramHistory, .blue)
+            if s.tempHistory.count > 1 { trendRow(tr("Temp"), s.tempHistory, .orange) }
+        }
+    }
+
+    private func trendRow(_ label: String, _ values: [Double], _ color: Color) -> some View {
+        HStack(spacing: 6) {
+            Text(label).font(.system(size: 9)).foregroundStyle(.secondary)
+                .frame(width: 46, alignment: .leading)
+            Sparkline(values: values, color: color)
         }
     }
 

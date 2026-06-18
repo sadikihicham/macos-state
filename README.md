@@ -21,6 +21,7 @@ Native **Swift + SwiftUI/AppKit**. 100% local, **no network access** (enforced b
 - **Menu-bar icon** (next to the clock): Show/Hide HUD, Always on top, Interval, Metrics,
   Launch at login, Quit.
 - **Settings**: refresh interval (1/2/5 s), displayed metrics, launch at login.
+- **History sparklines** (CPU / RAM / temperature trends over the last ~3 min) in expanded mode — fully local.
 - **Trilingual UI** (FR / EN / AR) with an in-app language menu, live switching, and RTL for Arabic.
 
 ## Security model

@@ -37,6 +37,10 @@ struct MetricsSnapshot {
     var fanRPM: Int? = nil
     var fanCount: Int = 0
     var hasThermal: Bool { cpuTempC != nil || fanCount > 0 }
+    // Historiques normalisés [0...1] (du plus ancien au plus récent) pour sparklines.
+    var cpuHistory: [Double] = []
+    var ramHistory: [Double] = []
+    var tempHistory: [Double] = []
 }
 
 /// Pilote les samplers via un Timer et publie un snapshot pour SwiftUI.
@@ -51,6 +55,11 @@ final class MetricsEngine: ObservableObject {
     private let battery = BatterySampler()
     private let thermal = ThermalSampler()
     private let procLister = ProcessLister()
+
+    // Historiques (~3 min à 2 s/échantillon).
+    private var cpuHist = RingHistory(capacity: 90)
+    private var ramHist = RingHistory(capacity: 90)
+    private var tempHist = RingHistory(capacity: 90)
     private(set) lazy var processController = ProcessController(lister: procLister)
 
     /// Liste des process (uniquement peuplée quand le mode développé l'active).
@@ -127,6 +136,15 @@ final class MetricsEngine: ObservableObject {
         s.cpuTempC = th.cpuTempC
         s.fanRPM = th.fanRPM
         s.fanCount = th.fanCount
+
+        // Alimente les historiques et publie leurs versions normalisées [0...1].
+        cpuHist.append(s.cpu)
+        ramHist.append(s.memory)
+        if let t = th.cpuTempC { tempHist.append(t) }
+        s.cpuHistory = cpuHist.normalized(min: 0, max: 1)
+        s.ramHistory = ramHist.normalized(min: 0, max: 1)
+        s.tempHistory = tempHist.normalized(min: 30, max: 100)
+
         snapshot = s
 
         if processListingEnabled { refreshProcesses() }
