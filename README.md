@@ -16,7 +16,7 @@ Native **Swift + SwiftUI/AppKit**. 100% local, **no network access** (enforced b
 - **Desktop HUD**: translucent, draggable, remembers its position; collapsed ⇄ expanded.
 - **Metrics**: CPU (+ per core), Memory (active/wired/compressed/free), Disk (used/free/total),
   Battery (%, charge, time left, **cycles + health**), Network (↓/↑ throughput, global +
-  **per interface**).
+  **per interface**), **Temperature (CPU) + fan speed** (best-effort; “N/A” if unavailable).
 - **Processes** (expanded mode): top CPU/memory consumers, icon, **Kill button** with confirmation.
 - **Menu-bar icon** (next to the clock): Show/Hide HUD, Always on top, Interval, Metrics,
   Launch at login, Quit.

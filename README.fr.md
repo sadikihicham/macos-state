@@ -16,7 +16,7 @@ Natif **Swift + SwiftUI/AppKit**. 100 % local, **aucun accès réseau** (garanti
 - **HUD bureau** translucide, déplaçable, position mémorisée ; réduit ⇄ développé.
 - **Métriques** : CPU (+ par cœur), Mémoire (active/câblée/compressée/libre), Disque
   (utilisé/libre/total), Batterie (%, charge, temps restant, **cycles + santé**), Réseau
-  (débit ↓/↑ global + **par interface**).
+  (débit ↓/↑ global + **par interface**), **Température (CPU) + ventilateur** (best-effort ; « N/A » si indispo).
 - **Process** (mode développé) : top consommateurs CPU, mémoire, icône, **bouton Tuer**
   avec confirmation.
 - **Icône barre de menu** (à côté de l'horloge) : Afficher/Masquer le HUD, Toujours
