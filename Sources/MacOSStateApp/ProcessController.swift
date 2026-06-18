@@ -37,6 +37,10 @@ final class ProcessController {
         }
 
         // 4) Exécution — arrêt gracieux si c'est une app à interface.
+        // Dette connue (F1) : NSRunningApplication n'est pas injectable → ce chemin
+        // n'a pas de couverture unitaire, et la fenêtre validate→terminate (synchrone,
+        // adjacente) reste théoriquement TOCTOU. Risque runtime jugé négligeable ;
+        // à durcir si NSRunningApplication devient abstrait/injectable.
         if let app = NSRunningApplication(processIdentifier: p.pid) {
             app.terminate()
             return .terminated

@@ -34,9 +34,12 @@ public final class ProcessLister {
             guard let bsd = Self.bsdInfo(pid) else { continue }
             let path = Self.procPath(pid)
             let isSystem = Self.isSystemPath(path)
-            // Fail-closed : si le nom est illisible, on garde "" (KillGuard refusera).
-            let name = Self.procName(pid)
-                ?? (path.map { ($0 as NSString).lastPathComponent } ?? "")
+            // Nom : on préfère le dernier composant du chemin complet (non tronqué)
+            // au proc_name (p_comm, limité à ~16 octets sur Darwin → contournement
+            // de la blacklist par troncature). Fail-closed : si les deux sont
+            // illisibles, "" → KillGuard refusera.
+            let name = (path.map { ($0 as NSString).lastPathComponent })
+                ?? Self.procName(pid) ?? ""
             let usage = Self.rusage(pid)          // nil si pas la permission (autre user)
             let mem = usage?.mem ?? 0
 
@@ -105,9 +108,15 @@ public final class ProcessLister {
     /// Binaire hébergé sous un répertoire système (frontière dure, plus fiable
     /// que le seul nom) → considéré comme non tuable.
     static func isSystemPath(_ path: String?) -> Bool {
-        guard let path else { return false }
-        let systemDirs = ["/System/", "/usr/libexec/", "/usr/sbin/", "/sbin/", "/usr/lib/"]
-        return systemDirs.contains { path.hasPrefix($0) }
+        // Fail-closed : un chemin illisible ⇒ on suppose "système" (non tuable)
+        // plutôt que d'autoriser à l'aveugle. Pour un process de l'utilisateur,
+        // proc_pidpath n'échoue quasi jamais ; ce cas couvre les identités indéterminées.
+        guard let path else { return true }
+        // Comparaison insensible à la casse (un volume sensible à la casse pourrait
+        // renvoyer une casse non canonique).
+        let lower = path.lowercased()
+        let systemDirs = ["/system/", "/usr/libexec/", "/usr/sbin/", "/sbin/", "/usr/lib/"]
+        return systemDirs.contains { lower.hasPrefix($0) }
     }
 
     static func rusage(_ pid: pid_t) -> (cpu: UInt64, mem: UInt64)? {

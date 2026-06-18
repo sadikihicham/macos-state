@@ -106,6 +106,11 @@ This is the project's reason for the specific design; treat both invariants as h
    App is intentionally **non-sandboxed** (kill is incompatible with App Sandbox). When touching kill
    logic, add a `KillGuardTests` case first — the guard is pure and must stay covered.
 
+   **Known debt (F1):** the graceful `NSRunningApplication.terminate()` path in
+   `ProcessController.perform` is not unit-covered (NSRunningApplication is not injectable) and has a
+   theoretical, sub-microsecond `validate→terminate` TOCTOU window. Runtime risk is negligible; harden
+   by abstracting `NSRunningApplication` behind a protocol if you ever touch that path.
+
 ## Conventions
 
 - **French** for comments/identifiers/UI — match the file. `// MARK: -` section dividers, `///` docs.

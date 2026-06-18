@@ -59,6 +59,11 @@ public enum KillGuard {
         if denyNames.contains(lname) {
             return .denied("Process système critique : \(name).")
         }
+        // Tolérance à la troncature de proc_name (p_comm ~16 octets sur Darwin) :
+        // un nom long tronqué reste refusé s'il est préfixe d'un nom critique connu.
+        if lname.count >= 15, denyNames.contains(where: { $0.hasPrefix(lname) }) {
+            return .denied("Process système critique (nom tronqué) : \(name).")
+        }
         if warnNames.contains(lname) {
             return .allowedWithWarning("« \(name) » sera relancé automatiquement, mais votre session peut brièvement clignoter.")
         }

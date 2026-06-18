@@ -39,4 +39,27 @@ final class ProcessListerTests: XCTestCase {
         // PID très improbable d'exister.
         XCTAssertFalse(lister.validate(pid: 999_999, expectedStart: 0, expectedUID: getuid()))
     }
+
+    // MARK: - isSystemPath (frontière dure, F3)
+
+    func testSystemPathNilFailsClosed() {
+        // F3 : chemin illisible ⇒ traité comme système (non tuable), pas fail-open.
+        XCTAssertTrue(ProcessLister.isSystemPath(nil))
+    }
+
+    func testSystemPathCaseInsensitive() {
+        XCTAssertTrue(ProcessLister.isSystemPath("/SYSTEM/Library/Foo"))
+        XCTAssertTrue(ProcessLister.isSystemPath("/usr/LibExec/food"))
+    }
+
+    func testSystemPathPrefixNotOverMatched() {
+        // Le slash final évite que /Systemfoo matche /System/.
+        XCTAssertFalse(ProcessLister.isSystemPath("/Users/x/Systemfoo"))
+        XCTAssertFalse(ProcessLister.isSystemPath("/Applications/Foo.app/Contents/MacOS/Foo"))
+    }
+
+    func testSystemPathRealSystemBinary() {
+        XCTAssertTrue(ProcessLister.isSystemPath("/System/Library/CoreServices/loginwindow"))
+        XCTAssertTrue(ProcessLister.isSystemPath("/usr/libexec/secd"))
+    }
 }

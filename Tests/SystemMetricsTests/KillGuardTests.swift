@@ -74,4 +74,27 @@ final class KillGuardTests: XCTestCase {
         // uid étranger l'emporte sur un nom "warn".
         XCTAssertTrue(decide(uid: other, name: "Finder").isDenied)
     }
+
+    func testTruncatedCriticalNameStillDenied() {
+        // F2 : proc_name tronque p_comm (~16 octets). Un daemon critique au nom
+        // long, tronqué, doit rester refusé (troncature à 15 OU 16).
+        XCTAssertTrue(decide(name: "knowledgeconstr").isDenied,   // knowledgeconstructd → 15
+                      "nom tronqué d'un daemon critique doit être refusé")
+        XCTAssertTrue(decide(name: "containermanager").isDenied,  // containermanagerd → 16
+                      "troncature à 16 doit aussi être refusée")
+        XCTAssertTrue(decide(name: "universalaccess").isDenied)   // universalaccessd → 15
+    }
+
+    func testLongNonCriticalNameStillAllowed() {
+        // Anti-faux-positif : un nom ≥15 chars qui n'est préfixe d'aucun nom
+        // critique reste autorisé.
+        XCTAssertEqual(decide(name: "abcdefghijklmno"), .allowed)
+    }
+
+    func testDenyAndWarnSetsAreDisjoint() {
+        // F7 : un nom ne doit jamais être à la fois deny et warn (sinon ambiguïté ;
+        // la précédence va vers le refus, mais on interdit le chevauchement par test).
+        XCTAssertTrue(KillGuard.denyNames.isDisjoint(with: KillGuard.warnNames),
+                      "denyNames et warnNames doivent être disjoints")
+    }
 }
